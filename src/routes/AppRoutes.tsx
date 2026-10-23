@@ -21,22 +21,22 @@ const RequestedItemPage = lazy(() => import('../request/pages/RequestedItemPage'
 const CatalogTaskPage = lazy(() => import('../request/pages/CatalogTaskPage'));
 const ChangesPage = lazy(() => import("../change/pages/ChangesPage"));
 const TicketsPage =lazy(() => import('../pages/ITSM/TicketsPage'));
-const SetupPage = lazy(() => import('../pages/Setup/SetupPage'));
-const LifeCyclesPage = lazy(() => import('../pages/Setup/LifeCyclesPage'));
-const ChatSettingsPage = lazy(() => import('../pages/Setup/ChatSettingsPage'));
-const MailSettingsPage = lazy(() => import('../pages/Setup/MailSettingsPage'));
-const MailAddressesPage = lazy(() => import('../pages/Setup/MailAddressesPage'));
-const MailBoxPage = lazy(() => import('../pages/Setup/MailBoxPage'));
-const MailFilterPage = lazy(() => import('../pages/Setup/MailFilterPage'));
-const EmailCommandPage = lazy(() => import('../pages/Setup/EmailCommandPage'));
-const NotificationTemplatesPage = lazy(() => import('../pages/Setup/NotificationTemplatesPage'));
-const NotificationRulesPage = lazy(() => import('../pages/Setup/NotificationRulesPage'));
-const BusinessRulesPage = lazy(() => import('../pages/Setup/BusinessRulesPage'));
-const SlaPage = lazy(() => import('../pages/Setup/SlaTargetsPage'));
-const RolesPage = lazy(() => import('../pages/Setup/RolesPage'));
+const SetupPage = lazy(() => import('../setup/pages/SetupPage'));
+const LifeCyclesPage = lazy(() => import('../setup/pages/LifeCyclesPage'));
+const ChatSettingsPage = lazy(() => import('../setup/pages/ChatSettingsPage'));
+const MailSettingsPage = lazy(() => import('../setup/pages/MailSettingsPage'));
+const MailAddressesPage = lazy(() => import('../setup/pages/MailAddressesPage'));
+const MailBoxPage = lazy(() => import('../setup/pages/MailBoxPage'));
+const MailFilterPage = lazy(() => import('../setup/pages/MailFilterPage'));
+const EmailCommandPage = lazy(() => import('../setup/pages/EmailCommandPage'));
+const NotificationTemplatesPage = lazy(() => import('../setup/pages/NotificationTemplatesPage'));
+const NotificationRulesPage = lazy(() => import('../setup/pages/NotificationRulesPage'));
+const BusinessRulesPage = lazy(() => import('../setup/pages/BusinessRulesPage'));
+const SlaPage = lazy(() => import('../setup/pages/SlaTargetsPage'));
+const RolesPage = lazy(() => import('../setup/pages/RolesPage'));
 const IncidentFormSettingsPage = lazy(() => import('../incident/pages/IncidentFormSettingsPage'));
 const ServiceCategoryPage = lazy(() => import('../request/pages/ServiceCategoryPage'));
-const CategoriesPage = lazy(() => import('../pages/Setup/CategoriesPage'));
+const CategoriesPage = lazy(() => import('../setup/pages/CategoriesPage'));
 
 const PageLoader = () => (
   <div className="flex items-center justify-center min-h-[400px]">
