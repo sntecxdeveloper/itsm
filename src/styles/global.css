@@ -1,0 +1,448 @@
+@import "tailwindcss";
+
+/* ============================================================
+   DEX Design System — "Command Center"
+   Deep-ink canvas · iris accent · mono numerics
+   ============================================================ */
+
+@theme {
+  /* -- Surfaces (white + sky) -- */
+  --color-canvas: #eef3f9;   /* app background — very light sky wash  */
+  --color-panel: #ffffff;    /* default card / surface               */
+  --color-panel-2: #f1f6fb;  /* nested surface                       */
+  --color-raised: #ffffff;   /* elevated: popovers, dropdowns        */
+
+  /* -- Hairlines -- */
+  --color-line: #dfe8f2;        /* standard border between surfaces */
+  --color-line-strong: #b9cde2; /* stronger border on hover/focus   */
+
+  /* -- Accent: sky blue -- */
+  --color-primary-50: #f0f9ff;
+  --color-primary-100: #e0f2fe;
+  --color-primary-200: #bae6fd;
+  --color-primary-300: #7dd3fc;
+  --color-primary-400: #38bdf8;
+  --color-primary-500: #0ea5e9;
+  --color-primary-600: #0284c7;
+  --color-primary-700: #0369a1;
+  --color-primary-800: #075985;
+  --color-primary-900: #0c4a6e;
+  --color-primary-950: #082f49;
+
+  /* -- Typography -- */
+  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-display: "Space Grotesk", "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  /* -- Global type scale: one step smaller than Tailwind defaults --
+     Applies app-wide to every text-xs…text-4xl utility.
+     Nudge these values up/down to tune overall density. */
+  --text-xs: 0.59375rem;  /* 9.5px (was 10px) */
+  --text-sm: 0.71875rem;  /* 11.5px (was 12px) */
+  --text-base: 0.78125rem;/* 12.5px (was 13px) */
+  --text-lg: 0.875rem;    /* 14px (was 15px) */
+  --text-xl: 1rem;        /* 16px (was 17px) */
+  --text-2xl: 1.1875rem;  /* 19px (was 20px) */
+  --text-3xl: 1.375rem;   /* 22px (was 24px) */
+  --text-4xl: 1.75rem;    /* 28px (was 30px) */
+
+  /* -- Depth (soft, light-friendly) -- */
+  --shadow-card: 0 1px 2px 0 rgb(15 23 42 / 0.05), 0 10px 24px -14px rgb(15 23 42 / 0.12);
+  --shadow-pop: 0 24px 60px -16px rgb(15 23 42 / 0.2), 0 2px 8px -2px rgb(15 23 42 / 0.06);
+  --shadow-glow: 0 0 0 1px rgb(14 165 233 / 0.22), 0 8px 32px -8px rgb(2 132 199 / 0.3);
+  --shadow-cta: 0 10px 28px -10px rgb(2 132 199 / 0.45);
+
+  /* -- Motion (mirrors src/motion/tokens.ts) -- */
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out-soft: cubic-bezier(0.45, 0, 0.2, 1);
+  --ease-in-fast: cubic-bezier(0.4, 0, 1, 1);
+  --dur-fast: 140ms;
+  --dur-base: 200ms;
+}
+
+/* ---------- Base ---------- */
+
+*,
+*::before,
+*::after {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  min-height: 100dvh;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  background-color: var(--color-canvas);
+  color: #334155;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+}
+
+::selection {
+  background: rgb(14 165 233 / 0.22);
+  color: #082f49;
+}
+
+/* Numeric data reads as a console */
+.font-mono,
+code,
+kbd,
+.mono-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Focus visibility baseline */
+:focus-visible {
+  outline: 2px solid rgb(14 165 233 / 0.6);
+  outline-offset: 1px;
+  border-radius: 2px;
+}
+
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* ---------- Signature utilities ---------- */
+
+/* Faint blueprint grid */
+.bg-grid {
+  background-image:
+    linear-gradient(rgb(148 163 184 / 0.055) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(148 163 184 / 0.055) 1px, transparent 1px);
+  background-size: 42px 42px;
+}
+
+/* Equalizer bars for ambient "live" visuals */
+@keyframes eq {
+  0%, 100% { transform: scaleY(0.3); }
+  50% { transform: scaleY(1); }
+}
+.eq-bar {
+  transform-origin: bottom;
+  animation: eq 1.2s ease-in-out infinite;
+}
+
+/* Slow breathing glow dot ring */
+@keyframes breathe {
+  0%, 100% { opacity: 0.25; transform: scale(1); }
+  50% { opacity: 0.6; transform: scale(1.6); }
+}
+.breathe {
+  animation: breathe 2.4s ease-in-out infinite;
+}
+
+/* ---------- Legacy page transitions & helpers (kept for existing screens) ---------- */
+
+.gpu-accelerated {
+  will-change: transform;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+}
+
+.page-enter { opacity: 0; transform: translateY(8px); }
+.page-enter-active {
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 200ms cubic-bezier(0.25, 0.46, 0.45, 0.94),
+    transform 200ms cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+.page-exit { opacity: 1; transform: translateY(0); }
+.page-exit-active {
+  opacity: 0;
+  transform: translateY(-8px);
+  transition: opacity 150ms cubic-bezier(0.55, 0.06, 0.68, 0.19),
+    transform 150ms cubic-bezier(0.55, 0.06, 0.68, 0.19);
+}
+
+.card-hover { transition: transform 200ms cubic-bezier(0.25, 0.46, 0.45, 0.94), box-shadow 200ms; }
+.card-hover:hover { transform: translateY(-2px); box-shadow: var(--shadow-card); }
+
+.btn-press { transition: transform 100ms cubic-bezier(0.25, 0.46, 0.45, 0.94); }
+.btn-press:active { transform: scale(0.98); }
+
+.focus-ring { transition: box-shadow 150ms ease; }
+.focus-ring:focus-visible { outline: none; box-shadow: 0 0 0 3px rgb(14 165 233 / 0.25); }
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+.skeleton {
+  background: linear-gradient(90deg, rgb(148 163 184 / 0.16) 25%, rgb(148 163 184 / 0.26) 50%, rgb(148 163 184 / 0.16) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.6s ease-in-out infinite;
+  border-radius: 0.375rem;
+}
+
+@keyframes pulse-badge {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.55; }
+}
+.pulse-badge { animation: pulse-badge 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+
+.sidebar-transition {
+  transition: width 250ms cubic-bezier(0.25, 0.46, 0.45, 0.94), transform 250ms cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+.overlay-enter { opacity: 0; transition: opacity 200ms ease; }
+.overlay-enter-active { opacity: 1; }
+
+.table-row-hover { transition: background-color 150ms ease; }
+
+.gradient-text {
+  background: linear-gradient(120deg, #38bdf8 0%, #0284c7 55%, #0ea5e9 120%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+@keyframes count-up {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.count-animate { animation: count-up 400ms cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards; }
+
+.modal-backdrop {
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+/* Staggered entrance (panels / cards) */
+@keyframes rise {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.rise {
+  animation: rise 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* ---------- KB rich text content (Tiptap editor + article view) ---------- */
+.kb-richtext {
+  font-size: 0.875rem;
+  line-height: 1.7;
+  color: #334155;
+}
+.kb-richtext > * + * { margin-top: 0.85em; }
+.kb-richtext h1 { font-size: 1.375rem; font-weight: 700; color: #0f172a; }
+.kb-richtext h2 { font-size: 1.125rem; font-weight: 700; color: #0f172a; }
+.kb-richtext h3 { font-size: 1rem; font-weight: 600; color: #0f172a; }
+.kb-richtext p { margin: 0; }
+.kb-richtext ul, .kb-richtext ol { padding-left: 1.5rem; }
+.kb-richtext ul { list-style: disc; }
+.kb-richtext ol { list-style: decimal; }
+.kb-richtext li { margin: 0.25em 0; }
+.kb-richtext a { color: #0284c7; text-decoration: underline; }
+.kb-richtext blockquote { border-left: 3px solid #cbd5e1; padding-left: 0.875rem; color: #64748b; font-style: italic; }
+.kb-richtext hr { border: none; border-top: 1px solid #e2e8f0; margin: 1.25em 0; }
+.kb-richtext img { max-width: 100%; border-radius: 0.5rem; }
+.kb-richtext pre { background: #0f172a; color: #e2e8f0; border-radius: 0.5rem; padding: 0.75rem 1rem; overflow-x: auto; font-family: var(--font-mono); font-size: 0.8em; }
+.kb-richtext code { font-family: var(--font-mono); }
+.kb-richtext table { border-collapse: collapse; width: 100%; }
+.kb-richtext th, .kb-richtext td { border: 1px solid #e2e8f0; padding: 0.5rem 0.75rem; text-align: left; }
+.kb-richtext th { background: #f8fafc; font-weight: 600; }
+
+.kb-editor .ProseMirror { outline: none; min-height: 320px; }
+.kb-editor .ProseMirror p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  color: #94a3b8;
+  pointer-events: none;
+  height: 0;
+}
+
+/* ---------- Scrollbars ---------- */
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #c6d5e6; border-radius: 4px; border: 2px solid transparent; background-clip: content-box; }
+::-webkit-scrollbar-thumb:hover { background-color: #a9bfd6; }
+
+.scrollbar-thin::-webkit-scrollbar { width: 4px; height: 4px; }
+.scrollbar-thin::-webkit-scrollbar-thumb { background: rgb(15 23 42 / 0.18); border: none; border-radius: 2px; background-clip: padding-box; }
+.scrollbar-thin::-webkit-scrollbar-thumb:hover { background: rgb(15 23 42 / 0.28); }
+
+/* ============================================================
+   LEGACY BRIDGE — existing pages were built for light "slate"
+   UI. DEX is now dark-first, so remap the legacy palette onto
+   the ink system. These rules are retired page-by-page as each
+   screen is re-skinned onto the design system.
+   ============================================================ */
+
+/* Neutral surfaces */
+.dark .bg-white { background-color: #0e1420; }
+.dark .bg-slate-50 { background-color: #0d1320; }
+.dark .bg-slate-100 { background-color: #16202f; }
+.dark .bg-slate-200 { background-color: #22314a; }
+.dark .bg-gray-100 { background-color: #182235; }
+.dark .bg-gray-200 { background-color: #22314a; }
+
+/* Neutral borders */
+.dark .border-slate-100 { border-color: #1c2740; }
+.dark .border-slate-200 { border-color: #22314a; }
+.dark .border-slate-300 { border-color: #33455f; }
+.dark .border-gray-200 { border-color: #2a3a57; }
+.dark .border-slate-100\/20 { border-color: rgb(28 39 64 / 0.2); }
+
+/* Neutral text */
+.dark .text-slate-900 { color: #f1f5f9; }
+.dark .text-slate-800 { color: #e2e8f0; }
+.dark .text-slate-700 { color: #cbd5e1; }
+.dark .text-slate-600 { color: #94a3b8; }
+.dark .text-slate-500 { color: #94a3b8; }
+.dark .text-slate-400 { color: #7c8ba1; }
+.dark .text-gray-600 { color: #94a3b8; }
+
+/* Status-tinted chips (severity / status pills across legacy screens) */
+.dark .bg-red-50 { background-color: rgb(248 113 113 / 0.08); }
+.dark .bg-red-100 { background-color: rgb(248 113 113 / 0.14); }
+.dark .bg-orange-50 { background-color: rgb(251 146 60 / 0.08); }
+.dark .bg-orange-100 { background-color: rgb(251 146 60 / 0.14); }
+.dark .bg-amber-50 { background-color: rgb(251 191 36 / 0.08); }
+.dark .bg-amber-100 { background-color: rgb(251 191 36 / 0.14); }
+.dark .bg-yellow-50 { background-color: rgb(251 191 36 / 0.08); }
+.dark .bg-yellow-100 { background-color: rgb(251 191 36 / 0.14); }
+.dark .bg-emerald-50 { background-color: rgb(52 211 153 / 0.08); }
+.dark .bg-emerald-100 { background-color: rgb(52 211 153 / 0.14); }
+.dark .bg-green-50 { background-color: rgb(52 211 153 / 0.08); }
+.dark .bg-green-100 { background-color: rgb(52 211 153 / 0.14); }
+.dark .bg-teal-50 { background-color: rgb(45 212 191 / 0.08); }
+.dark .bg-teal-100 { background-color: rgb(45 212 191 / 0.14); }
+.dark .bg-blue-50 { background-color: rgb(96 165 250 / 0.08); }
+.dark .bg-blue-100 { background-color: rgb(96 165 250 / 0.14); }
+.dark .bg-purple-100 { background-color: rgb(167 139 250 / 0.16); }
+
+.dark .text-red-700, .dark .text-red-800 { color: #fca5a5; }
+.dark .text-red-600 { color: #fda4af; }
+.dark .text-orange-700, .dark .text-orange-800 { color: #fdba74; }
+.dark .text-amber-700, .dark .text-amber-800 { color: #fcd34d; }
+.dark .text-yellow-700, .dark .text-yellow-800 { color: #fde047; }
+.dark .text-emerald-700, .dark .text-emerald-800 { color: #6ee7b7; }
+.dark .text-green-700, .dark .text-green-800 { color: #6ee7b7; }
+.dark .text-green-600 { color: #86efac; }
+.dark .text-teal-700, .dark .text-teal-800 { color: #5eead4; }
+.dark .text-teal-600 { color: #5eead4; }
+.dark .text-blue-700, .dark .text-blue-800 { color: #93c5fd; }
+.dark .text-blue-600 { color: #60a5fa; }
+.dark .text-purple-800 { color: #c4b5fd; }
+
+.dark .border-red-100, .dark .border-red-200 { border-color: rgb(248 113 113 / 0.22); }
+.dark .border-orange-100, .dark .border-orange-200 { border-color: rgb(251 146 60 / 0.22); }
+.dark .border-amber-100, .dark .border-amber-200 { border-color: rgb(251 191 36 / 0.22); }
+.dark .border-yellow-100, .dark .border-yellow-200 { border-color: rgb(251 191 36 / 0.22); }
+.dark .border-emerald-100, .dark .border-emerald-200 { border-color: rgb(52 211 153 / 0.22); }
+.dark .border-green-100, .dark .border-green-200 { border-color: rgb(52 211 153 / 0.22); }
+.dark .border-teal-100, .dark .border-teal-200 { border-color: rgb(45 212 191 / 0.22); }
+.dark .border-blue-100, .dark .border-blue-200 { border-color: rgb(96 165 250 / 0.22); }
+.dark .border-purple-100, .dark .border-purple-200 { border-color: rgb(167 139 250 / 0.22); }
+
+/* Primary (iris) remap so legacy "primary-*" usage matches the brand */
+.dark .bg-primary-50 { background-color: rgb(143 107 255 / 0.08); }
+.dark .bg-primary-100 { background-color: rgb(143 107 255 / 0.16); }
+.dark .bg-primary-500 { background-color: #8f6bff; }
+.dark .bg-primary-600 { background-color: #7b4dff; }
+.dark .bg-primary-700 { background-color: #6a38e8; }
+.dark .bg-primary-900 { background-color: #44249a; }
+.dark .text-primary-600, .dark .text-primary-700 { color: #c0adff; }
+.dark .text-primary-800 { color: #d9cfff; }
+.dark .border-primary-100, .dark .border-primary-200 { border-color: rgb(143 107 255 / 0.25); }
+.dark .hover\:text-primary-700:hover { color: #c0adff; }
+
+/* ============================================================
+   LIGHT BRIDGE — components were re-skinned onto the deep-ink
+   system (near-white text on ink panels). The app now renders on
+   white / sky surfaces, so re-map those near-white and translucent
+   status-tint text tones onto dark slate. Plain (unlayered) rules
+   win over Tailwind's utility layer regardless of order.
+   Retire rule-by-rule as components move to semantic colors.
+   ============================================================ */
+
+/* Neutral near-white text → dark slate */
+.text-slate-100 { color: #0f172a; }
+.text-slate-200 { color: #1e293b; }
+.text-slate-300 { color: #334155; }
+
+/* Status-tint text authored for dark translucent chips → solid tones */
+.text-red-300 { color: #dc2626; }
+.text-red-400 { color: #ef4444; }
+.text-orange-300 { color: #ea580c; }
+.text-orange-400 { color: #f97316; }
+.text-amber-300 { color: #d97706; }
+.text-amber-400 { color: #f59e0b; }
+.text-yellow-300 { color: #ca8a04; }
+.text-emerald-300 { color: #047857; }
+.text-emerald-400 { color: #059669; }
+.text-green-300 { color: #15803d; }
+.text-teal-300 { color: #0f766e; }
+.text-teal-400 { color: #14b8a6; }
+.text-sky-300 { color: #0369a1; }
+.text-sky-400 { color: #0284c7; }
+.text-blue-300 { color: #1d4ed8; }
+.text-blue-400 { color: #2563eb; }
+.text-primary-300 { color: #0369a1; }
+.text-primary-400 { color: #0284c7; }
+
+
+/* ============================================================
+   Motion
+   Fast starts, soft landings, and only GPU-friendly properties
+   where it matters (transform, opacity). Mirrors src/motion/.
+   ============================================================ */
+
+/* Every Tailwind transition uses the same curve, and nothing drags on for longer than it has to. */
+.transition,
+.transition-all,
+.transition-colors,
+.transition-opacity,
+.transition-shadow,
+.transition-transform,
+[class*='transition-['] {
+  transition-timing-function: var(--ease-out-expo);
+}
+.transition-all,
+.transition-colors,
+.transition-opacity,
+.transition-transform {
+  transition-duration: var(--dur-fast);
+}
+
+.btn-press { transition: transform 90ms var(--ease-out-expo); }
+.btn-press:active { transform: scale(0.97); }
+
+.card-hover { transition: transform var(--dur-base) var(--ease-out-expo), box-shadow var(--dur-base) var(--ease-out-expo); }
+.card-hover:hover { transform: translateY(-2px); box-shadow: var(--shadow-card); }
+
+.table-row-hover { transition: background-color 100ms var(--ease-out-expo); }
+
+/* Toasts and other things that used to appear without moving. */
+@keyframes slide-in {
+  from { opacity: 0; transform: translateX(24px) scale(0.98); }
+  to { opacity: 1; transform: translateX(0) scale(1); }
+}
+.animate-slide-in { animation: slide-in var(--dur-base) var(--ease-out-expo) both; }
+
+/* The page itself never stutters while something animates: promote only what is about to move. */
+.will-animate { will-change: transform, opacity; }
+
+/* Smooth scrolling and no rubber-banding of the whole page behind a scrolling panel. */
+.overscroll-contain-y { overscroll-behavior-y: contain; }
+
+/* People who asked their system for less motion get (almost) none. */
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
