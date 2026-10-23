@@ -4,12 +4,12 @@ import { useAppDispatch } from '../../hooks/useAppDispatch';
 import { useAppSelector } from '../../hooks/useAppSelector';
 import { fetchTickets } from '../../features/itsm/itsmSlice';
 import { assignTicket, assignTicketToGroup, updateTicketStatus } from '../../api/itsmApi';
-import { emailTicketsWithTemplate, groupMemberEmails, savedRequester } from '../../utils/ticketNotifications';
+import { emailTicketsWithTemplate, groupMemberEmails, savedRequester } from '../utils/ticketNotifications';
 import ErrorMessage from '../../components/common/ErrorMessage';
-import AssignTicketsModal from '../../components/itsm/AssignTicketsModal';
-import NotificationTemplateModal from '../../components/itsm/NotificationTemplateModal';
+import AssignTicketsModal from '../components/AssignTicketsModal';
+import NotificationTemplateModal from '../components/NotificationTemplateModal';
 import { getSection, isIncidentTicket } from '../../utils/itsmSections';
-import { INCIDENT_VIEWS } from '../../utils/incidentViews';
+import { INCIDENT_VIEWS } from '../utils/incidentViews';
 import type { ItsmTicket, TicketPriority, TicketStatus } from '../../types';
 
 const PAGE_SIZE = 20;

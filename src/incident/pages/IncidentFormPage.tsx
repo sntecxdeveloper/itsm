@@ -1,7 +1,7 @@
-import { loadFormSettings } from '../../utils/incidentFormStore';
+import { loadFormSettings } from '../utils/incidentFormStore';
 import EmailListField, { type KnownEmail } from './EmailListField';
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
-import { groupMemberEmails, notifyGroupResolved, notifyTicketEvent, notifyWatchers, parseAddresses } from '../../utils/ticketNotifications';
+import { groupMemberEmails, notifyGroupResolved, notifyTicketEvent, notifyWatchers, parseAddresses } from '../utils/ticketNotifications';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { useAppDispatch } from '../../hooks/useAppDispatch';
 import { useAppSelector } from '../../hooks/useAppSelector';
@@ -13,7 +13,7 @@ import { useAssignmentGroups } from '../../hooks/useAssignmentGroups';
 import ErrorMessage from '../../components/common/ErrorMessage';
 import { getSection } from '../../utils/itsmSections';
 import { getCategoryMap } from '../../utils/categoryStore';
-import { formatSize, loadAttachments, saveAttachments, type Attachment } from '../../utils/incidentAttachments';
+import { formatSize, loadAttachments, saveAttachments, type Attachment } from '../utils/incidentAttachments';
 import { applicableSlas, dueAt, durationLabel, loadSlas } from '../../utils/sla';
 import { NO_FACTS } from '../../utils/businessRules';
 import { allowedStates, loadTransitions } from '../../utils/lifecycle';

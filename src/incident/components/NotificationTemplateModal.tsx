@@ -2,7 +2,7 @@ import { createPortal } from 'react-dom';
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { getGroupPeople } from '../../api/groupApi';
-import { Button } from '../ui/Button';
+import { Button } from '../../components/ui/Button';
 import { isHtmlBody, previewHtml, renderBody } from '../../utils/emailHtml';
 import {
   emailTicketsWithTemplate,
@@ -10,7 +10,7 @@ import {
   saveRequesterEmail,
   savedRequester,
   type EmailTemplate,
-} from '../../utils/ticketNotifications';
+} from '../utils/ticketNotifications';
 
 const validEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 

@@ -5,7 +5,7 @@ import { useAppSelector } from '../../hooks/useAppSelector';
 import { fetchTickets } from '../../features/itsm/itsmSlice';
 import { createTicket, getTicketById, updateTicketStatus } from '../../api/itsmApi';
 import ErrorMessage from '../../components/common/ErrorMessage';
-import { GROUPS, Inp, Row, Sel, control } from './IncidentFormPage';
+import { GROUPS, Inp, Row, Sel, control } from '../../incident/pages/IncidentFormPage';
 import {
   Banner,
   CATALOG_ITEMS,

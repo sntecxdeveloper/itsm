@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { loadServices, saveServices } from '../../utils/serviceStore';
-import { CATALOG } from '../ITSM/serviceRequestShared';
+import { CATALOG } from './serviceRequestShared';
 
 /** Setup → Service Category: the categories (and their items) users can pick from the Service Catalog. */
 export default function ServiceCategoryPage() {

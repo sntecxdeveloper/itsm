@@ -1,7 +1,7 @@
-import { getMailSettings, sendTestMail } from '../api/mailSettingsApi';
-import { emailTicket } from '../api/itsmApi';
-import { getGroupPeople } from '../api/groupApi';
-import { escapeHtml, HTML_MARKER, renderBody } from './emailHtml';
+import { getMailSettings, sendTestMail } from '../../api/mailSettingsApi';
+import { emailTicket } from '../../api/itsmApi';
+import { getGroupPeople } from '../../api/groupApi';
+import { escapeHtml, HTML_MARKER, renderBody } from '../../utils/emailHtml';
 
 const TEMPLATES_KEY = 'dex.notificationTemplates.v2';
 const RULES_KEY = 'dex.notificationRules.v1';

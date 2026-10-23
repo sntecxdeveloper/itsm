@@ -4,16 +4,16 @@ import { useAppDispatch } from '../../hooks/useAppDispatch';
 import { useAppSelector } from '../../hooks/useAppSelector';
 import { nextTicketNumber } from '../../utils/ticketNumber';
 import { getCategoryMap } from '../../utils/categoryStore';
-import { loadFormSettings } from '../../utils/incidentFormStore';
+import { loadFormSettings } from '../utils/incidentFormStore';
 import { getIssues } from '../../utils/issueStore';
 import { loadCategoryGroups, subcategoryKey } from '../../utils/categoryGroupStore';
-import { formatSize, readAttachments, saveAttachments, type Attachment } from '../../utils/incidentAttachments';
+import { formatSize, readAttachments, saveAttachments, type Attachment } from '../utils/incidentAttachments';
 import { fetchTickets } from '../../features/itsm/itsmSlice';
 import { createTicket } from '../../api/itsmApi';
 import { getFormFields, isFilled, type CustomFieldDef } from '../../api/customFieldApi';
 import CustomFieldsForm from '../../components/customfields/CustomFieldsForm';
 import { useAssignmentGroups } from '../../hooks/useAssignmentGroups';
-import { emailTicketsWithTemplate, groupMemberEmails } from '../../utils/ticketNotifications';
+import { emailTicketsWithTemplate, groupMemberEmails } from '../utils/ticketNotifications';
 import { evaluateRules, loadRules, NO_FACTS } from '../../utils/businessRules';
 import {
   LEVELS,

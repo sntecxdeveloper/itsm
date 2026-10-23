@@ -4,7 +4,7 @@ import { useAppDispatch } from '../../hooks/useAppDispatch';
 import { useAppSelector } from '../../hooks/useAppSelector';
 import { fetchTickets } from '../../features/itsm/itsmSlice';
 import { isIncidentTicket } from '../../utils/itsmSections';
-import { INCIDENT_VIEWS } from '../../utils/incidentViews';
+import { INCIDENT_VIEWS } from '../utils/incidentViews';
 import IncidentFormPage from './IncidentFormPage';
 import IncidentsPage from './IncidentsPage';
 import NewIncidentPage from './NewIncidentPage';

@@ -7,7 +7,8 @@ import { useAppDispatch } from '../hooks/useAppDispatch';
 import { setSidebarOpen, toggleSidebarCollapse } from '../store/uiSlice';
 import { NAV_ITEMS, ADMIN_NAV_ITEMS, NAV_PERMISSIONS } from '../utils/constants';
 import { Logo } from '../components/ui/Logo';
-import { INCIDENT_VIEWS } from '../utils/incidentViews';
+import { INCIDENT_VIEWS } from '../incident/utils/incidentViews';
+import { CHANGE_VIEWS } from '../change/utils/changeViews';
 import { arrange, useLayoutArea } from '../hooks/useLayoutArea';
 import ArrangeModal from '../components/customization/ArrangeModal';
 import WhyThis from '../components/customization/WhyThis';
@@ -167,13 +168,14 @@ const ITSM_SUBNAV: SubItem[] = [
       ['overview', 'Overview'],
     ] as const
   ).map(([slug, label]): SubItem => ({ path: `/tickets/problems/${slug}`, label, depth: 1, group: '/tickets/problems' })),
-  { path: '/tickets/change-requests', label: 'Changes' },
+  { path: '/tickets/changes', label: 'Changes', end: true },
+  ...CHANGE_VIEWS.map((v): SubItem => ({ path: `/tickets/changes/${v.slug}`, label: v.label, depth: 1, group: '/tickets/changes' })),
   { path: '/tickets/groups', label: 'ITSM Groups' },
   { path: '/setup', label: 'Setup', end: true },
 ];
 
 /** Sub-items that own a nested group, toggled by a chevron. */
-const NESTED_PARENTS = ['/tickets/incidents', '/tickets/problems', '/tickets/service-requests'];
+const NESTED_PARENTS = ['/tickets/incidents', '/tickets/problems', '/tickets/changes', '/tickets/service-requests'];
 
 const ASSET_SUBNAV: SubItem[] = [
   { path: '/assets', label: 'All Assets', end: true },

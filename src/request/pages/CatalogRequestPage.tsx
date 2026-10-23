@@ -6,7 +6,7 @@ import { fetchTickets } from '../../features/itsm/itsmSlice';
 import { createTicket } from '../../api/itsmApi';
 import { loadServices } from '../../utils/serviceStore';
 import { loadManualAssets } from '../../utils/assets';
-import { Inp, Row, Sel, control } from './IncidentFormPage';
+import { Inp, Row, Sel, control } from '../../incident/pages/IncidentFormPage';
 import { CATALOG, FORM_WRAP, actionBtn, primaryBtn } from './serviceRequestShared';
 
 const BACK = '/tickets/service-requests';

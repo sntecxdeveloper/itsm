@@ -5,8 +5,8 @@ import { runScriptOnGroup } from '../../api/groupApi';
 import { subscribeTopic } from '../../api/liveBus';
 import type { BulkRunResult, KbScriptRun, KnowledgeScript } from '../../types';
 import type { GroupSummary } from '../../types/group';
-import { AdminBadge, RiskBadge, RunStatusBadge, ScriptParamsInputs } from '../knowledge/scriptMeta';
-import { coerceParams, defaultParamValues, parseParams } from '../knowledge/scriptParams';
+import { AdminBadge, RiskBadge, RunStatusBadge, ScriptParamsInputs } from '../../components/knowledge/scriptMeta';
+import { coerceParams, defaultParamValues, parseParams } from '../../components/knowledge/scriptParams';
 
 interface Props {
   group: GroupSummary;

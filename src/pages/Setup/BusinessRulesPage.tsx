@@ -2,8 +2,8 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAssignmentGroups } from '../../hooks/useAssignmentGroups';
 import { getCategoryMap } from '../../utils/categoryStore';
-import { loadFormSettings } from '../../utils/incidentFormStore';
-import { LEVELS, derivedPriority } from '../ITSM/IncidentFormPage';
+import { loadFormSettings } from '../../incident/utils/incidentFormStore';
+import { LEVELS, derivedPriority } from '../../incident/pages/IncidentFormPage';
 import {
   ACTION_LABEL,
   FACT_KEYS,

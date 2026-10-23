@@ -10,7 +10,7 @@ import AddIncidentsModal from '../../components/itsm/AddIncidentsModal';
 import NewTicketModal from '../../components/itsm/NewTicketModal';
 import AddDevicesModal from '../../components/itsm/AddDevicesModal';
 import type { Device, ItsmTicket } from '../../types';
-import { GROUPS, Inp, Row, Sel, control } from './IncidentFormPage';
+import { GROUPS, Inp, Row, Sel, control } from '../../incident/pages/IncidentFormPage';
 import { getCategoryMap } from '../../utils/categoryStore';
 
 const STAGES = ['New', 'Assess', 'Root Cause Analysis', 'Fix in Progress', 'Resolved', 'Closed'];

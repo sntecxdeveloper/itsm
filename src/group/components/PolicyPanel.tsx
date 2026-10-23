@@ -2,8 +2,8 @@ import { useEffect, useMemo, useState } from 'react';
 import { updateGroupPolicy } from '../../api/groupApi';
 import { getApprovedScripts } from '../../api/knowledgeApi';
 import { getErrorMessage } from '../../utils/errorHandler';
-import { toast } from '../common/Toast';
-import { Button } from '../ui/Button';
+import { toast } from '../../components/common/Toast';
+import { Button } from '../../components/ui/Button';
 import type { GroupDetail } from '../../types/group';
 import type { KnowledgeScript } from '../../types';
 

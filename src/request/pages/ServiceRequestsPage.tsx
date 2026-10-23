@@ -1,6 +1,6 @@
 import { Navigate, useParams } from 'react-router-dom';
 import NewServiceRequestPage from './NewServiceRequestPage';
-import TicketsPage from './TicketsPage';
+import TicketsPage from '../../pages/ITSM/TicketsPage';
 
 /** /tickets/service-requests/:view — "create-new" and "requests" (the landing page is the catalog). */
 export default function ServiceRequestsPage() {

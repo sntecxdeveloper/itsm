@@ -1,4 +1,4 @@
-import type { ItsmTicket } from '../types';
+import type { ItsmTicket } from '../../types';
 
 export interface IncidentView {
   slug: string;

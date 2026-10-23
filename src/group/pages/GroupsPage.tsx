@@ -5,10 +5,10 @@ import { deleteGroup, getFeatureCatalog, getGroup, getGroups, isDeviceGroup } fr
 import { usePageParts } from '../../hooks/usePageParts';
 import { useListView } from '../../hooks/useListView';
 import ConfirmDialog from '../../components/common/ConfirmDialog';
-import GroupFormModal from '../../components/groups/GroupFormModal';
+import GroupFormModal from '../components/GroupFormModal';
 import ListToolbar from '../../components/listview/ListToolbar';
 import { toast } from '../../components/common/Toast';
-import { GROUP_TYPES, HEALTH_INFO, KINDS, KIND_INFO, TYPE_INFO } from '../../components/groups/groupMeta';
+import { GROUP_TYPES, HEALTH_INFO, KINDS, KIND_INFO, TYPE_INFO } from '../components/groupMeta';
 import { getErrorMessage } from '../../utils/errorHandler';
 import { formatDate, formatRelativeTime } from '../../utils/formatDate';
 import { newRuleId, type ChoiceOption, type Field, type QuickFilter } from '../../utils/listView';

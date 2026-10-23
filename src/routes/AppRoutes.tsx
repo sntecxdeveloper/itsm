@@ -9,16 +9,17 @@ import LeaveToConsole from './LeaveToConsole';
 
 // The ITSM app: tickets and Setup. Every other address belongs to the console (another app on the same site): a link to one of them
 // loads that app instead (see LeaveToConsole), so addresses stay exactly the same as before the split.
-const GroupsPage = lazy(() => import('../pages/Groups/GroupsPage'));
+const GroupsPage = lazy(() => import('../group/pages/GroupsPage'));
 const ItsmHomePage = lazy(() => import('../pages/ITSM/ItsmHomePage'));
-const IncidentsPage = lazy(() => import('../pages/ITSM/IncidentsPage'));
-const IncidentRoute = lazy(() => import('../pages/ITSM/IncidentRoute'));
+const IncidentsPage = lazy(() => import('../incident/pages/IncidentsPage'));
+const IncidentRoute = lazy(() => import('../incident/pages/IncidentRoute'));
 const ProblemsPage = lazy(() => import('../pages/ITSM/ProblemsPage'));
-const ServiceCatalogPage = lazy(() => import('../pages/ITSM/ServiceCatalogPage'));
-const CatalogRequestPage = lazy(() => import('../pages/ITSM/CatalogRequestPage'));
-const ServiceRequestsPage = lazy(() => import('../pages/ITSM/ServiceRequestsPage'));
-const RequestedItemPage = lazy(() => import('../pages/ITSM/RequestedItemPage'));
-const CatalogTaskPage = lazy(() => import('../pages/ITSM/CatalogTaskPage'));
+const ServiceCatalogPage = lazy(() => import('../request/pages/ServiceCatalogPage'));
+const CatalogRequestPage = lazy(() => import('../request/pages/CatalogRequestPage'));
+const ServiceRequestsPage = lazy(() => import('../request/pages/ServiceRequestsPage'));
+const RequestedItemPage = lazy(() => import('../request/pages/RequestedItemPage'));
+const CatalogTaskPage = lazy(() => import('../request/pages/CatalogTaskPage'));
+const ChangesPage = lazy(() => import("../change/pages/ChangesPage"));
 const TicketsPage =lazy(() => import('../pages/ITSM/TicketsPage'));
 const SetupPage = lazy(() => import('../pages/Setup/SetupPage'));
 const LifeCyclesPage = lazy(() => import('../pages/Setup/LifeCyclesPage'));
@@ -33,8 +34,8 @@ const NotificationRulesPage = lazy(() => import('../pages/Setup/NotificationRule
 const BusinessRulesPage = lazy(() => import('../pages/Setup/BusinessRulesPage'));
 const SlaPage = lazy(() => import('../pages/Setup/SlaTargetsPage'));
 const RolesPage = lazy(() => import('../pages/Setup/RolesPage'));
-const IncidentFormSettingsPage = lazy(() => import('../pages/Setup/IncidentFormSettingsPage'));
-const ServiceCategoryPage = lazy(() => import('../pages/Setup/ServiceCategoryPage'));
+const IncidentFormSettingsPage = lazy(() => import('../incident/pages/IncidentFormSettingsPage'));
+const ServiceCategoryPage = lazy(() => import('../request/pages/ServiceCategoryPage'));
 const CategoriesPage = lazy(() => import('../pages/Setup/CategoriesPage'));
 
 const PageLoader = () => (
@@ -64,6 +65,7 @@ export default function AppRoutes() {
         <Route path="/tickets/service-requests/items/:id" element={<RequestedItemPage />} />
         <Route path="/tickets/service-requests/tasks/:id" element={<CatalogTaskPage />} />
         <Route path="/tickets/service-requests/:view" element={<ServiceRequestsPage />} />
+        <Route path="/tickets/changes/:view" element={<ChangesPage />} />
         <Route path="/tickets/groups" element={<GroupsPage startView="TECHNICIANS" />} />
         <Route path="/tickets/:section" element={<TicketsPage />} />
         <Route

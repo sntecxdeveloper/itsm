@@ -5,7 +5,7 @@ import { useAppDispatch } from '../../hooks/useAppDispatch';
 import { useAppSelector } from '../../hooks/useAppSelector';
 import { fetchTickets } from '../../features/itsm/itsmSlice';
 import { createTicket } from '../../api/itsmApi';
-import { GROUPS, Inp, Row, Sel, control } from './IncidentFormPage';
+import { GROUPS, Inp, Row, Sel, control } from '../../incident/pages/IncidentFormPage';
 import {
   CATALOG_ITEMS,
   FORM_WRAP,

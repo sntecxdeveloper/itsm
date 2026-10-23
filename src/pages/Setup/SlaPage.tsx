@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { getCategoryMap } from '../../utils/categoryStore';
-import { CHANNELS, LEVELS } from '../ITSM/IncidentFormPage';
+import { CHANNELS, LEVELS } from '../../incident/pages/IncidentFormPage';
 import {
   FACT_KEYS,
   FACT_LABEL,

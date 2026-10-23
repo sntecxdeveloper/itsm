@@ -2,7 +2,7 @@ import { createPortal } from 'react-dom';
 import { useEffect, useState } from 'react';
 import { getUsers } from '../../api/userApi';
 import { useAssignmentGroups } from '../../hooks/useAssignmentGroups';
-import { Button } from '../ui/Button';
+import { Button } from '../../components/ui/Button';
 
 /** Who the incidents go to: one user, or a technician group whose members can all handle them. */
 export type AssignTarget = { kind: 'user'; username: string } | { kind: 'group'; groupId: number };

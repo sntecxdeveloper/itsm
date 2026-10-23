@@ -5,7 +5,7 @@ import { useAppSelector } from '../../hooks/useAppSelector';
 import { fetchTickets } from '../../features/itsm/itsmSlice';
 import { getTicketById, updateTicketStatus } from '../../api/itsmApi';
 import ErrorMessage from '../../components/common/ErrorMessage';
-import { Inp, Row, control } from './IncidentFormPage';
+import { Inp, Row, control } from '../../incident/pages/IncidentFormPage';
 import {
   Banner,
   FORM_WRAP,

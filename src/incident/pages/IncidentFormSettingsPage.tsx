@@ -6,7 +6,7 @@ import {
   resetFormSettings,
   saveFormSettings,
   type IncidentFormSettings,
-} from '../../utils/incidentFormStore';
+} from '../utils/incidentFormStore';
 
 const field =
   'rounded border border-slate-300 bg-white px-2.5 py-1 text-xs text-slate-800 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500';

@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from 'react';
-import { control } from './IncidentFormPage';
+import { control } from '../../incident/pages/IncidentFormPage';
 import type { TicketStatus } from '../../types';
 
 /** Small-text form look, shared with the incident pages. */

@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { clearGroupFeatures, getFeatureCatalog, getGroupFeatures, getGroupFeaturesApplied, setGroupFeatures } from '../../api/groupApi';
 import { getErrorMessage } from '../../utils/errorHandler';
-import { toast } from '../common/Toast';
-import { Button } from '../ui/Button';
+import { toast } from '../../components/common/Toast';
+import { Button } from '../../components/ui/Button';
 import { formatRelativeTime } from '../../utils/formatDate';
 import type { AppliedStatus, FeatureTab, GroupFeatures } from '../../types/group';
 
