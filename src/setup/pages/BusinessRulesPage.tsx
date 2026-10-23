@@ -12,8 +12,6 @@ import {
   OPERATORS,
   PRIORITIES,
   blankRule,
-  describeAction,
-  describeCondition,
   evaluateRules,
   loadRules,
   newId,
@@ -41,7 +39,7 @@ const darkBtn = 'rounded bg-slate-800 px-3 py-1 text-xs font-semibold text-white
 
 const stamp = (iso: string) => (iso ? `${iso.slice(0, 10)} ${iso.slice(11, 19)}` : '');
 
-type ColKey = 'name' | 'active' | 'table' | 'application' | 'order' | 'updated' | 'when' | 'condition' | 'actions';
+type ColKey = 'name' | 'active' | 'table' | 'application' | 'order' | 'updated';
 
 const COLUMNS: { key: ColKey; label: string; get: (r: BusinessRule) => string }[] = [
   { key: 'name', label: 'Name', get: (r) => r.name },
@@ -50,13 +48,6 @@ const COLUMNS: { key: ColKey; label: string; get: (r: BusinessRule) => string }[
   { key: 'application', label: 'Application', get: () => APPLICATION },
   { key: 'order', label: 'Order', get: (r) => String(r.order) },
   { key: 'updated', label: 'Updated', get: (r) => stamp(r.updatedAt) },
-  { key: 'when', label: 'When', get: () => WHEN },
-  {
-    key: 'condition',
-    label: 'Condition',
-    get: (r) => (r.conditions.length ? r.conditions.map(describeCondition).join(r.match === 'all' ? ' and ' : ' or ') : 'Always'),
-  },
-  { key: 'actions', label: 'Actions', get: (r) => r.actions.map(describeAction).join(', ') + (r.stop ? ' · then stop' : '') },
 ];
 
 /** Starting points taken from the usual ITSM rules; the group is picked after choosing one. */
@@ -111,8 +102,9 @@ export default function BusinessRulesPage() {
   const [searchField, setSearchField] = useState<ColKey>('name');
   const [search, setSearch] = useState('');
   const [colFilter, setColFilter] = useState<Partial<Record<ColKey, string>>>({});
-  const [sortKey, setSortKey] = useState<ColKey>('updated');
-  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
+  const [sortKey, setSortKey] = useState<ColKey>('name');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
+  const [showFilters, setShowFilters] = useState(false);
   const [page, setPage] = useState(0);
   const [checked, setChecked] = useState<Set<string>>(new Set());
   const [testing, setTesting] = useState(false);
@@ -401,10 +393,13 @@ export default function BusinessRulesPage() {
     <div className="-mx-1 space-y-0">
       {/* Title bar */}
       <div className="flex flex-wrap items-center gap-3 border-b border-slate-200 bg-slate-100 px-3 py-2">
-        <Link to="/setup" className="text-sm text-slate-500 hover:text-slate-800" aria-label="Back to Setup" title="Back to Setup">
+        <Link to="/setup" className="text-base text-slate-500 hover:text-slate-800" aria-label="Back to Setup" title="Back to Setup">
           ☰
         </Link>
-        <h1 className="text-sm font-semibold text-slate-900">Business Rules</h1>
+        <button onClick={() => setShowFilters((v) => !v)} className="text-base text-slate-500 hover:text-slate-800" aria-pressed={showFilters} aria-label="Show column filters" title="Column filters">
+          ⛛
+        </button>
+        <h1 className="text-base font-semibold text-slate-900">Business Rules</h1>
         <div className="flex items-center">
           <select value={searchField} onChange={(e) => setSearchField(e.target.value as ColKey)} className={`${input} w-36 rounded-l`} aria-label="Search field">
             {COLUMNS.map((c) => (
@@ -416,6 +411,9 @@ export default function BusinessRulesPage() {
           <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search" className={`${input} -ml-px w-56 rounded-r`} aria-label="Search" />
         </div>
         <div className="ml-auto flex items-center gap-3">
+          <button onClick={() => setTesting((t) => !t)} className="text-base text-slate-500 hover:text-slate-800" aria-pressed={testing} aria-label="Test rules" title="Test rules">
+            ∿
+          </button>
           <select value="" onChange={(e) => runAction(e.target.value)} className={`${input} w-56 rounded`} aria-label="Actions on selected rows">
             <option value="">Actions on selected rows...</option>
             <option value="edit">Edit</option>
@@ -424,9 +422,6 @@ export default function BusinessRulesPage() {
             <option value="copy">Copy</option>
             <option value="delete">Delete</option>
           </select>
-          <button onClick={() => setTesting((t) => !t)} className={btn} aria-pressed={testing}>
-            Test rules
-          </button>
           <button onClick={() => open(blankRule(), true)} className={darkBtn}>
             New
           </button>
@@ -435,13 +430,14 @@ export default function BusinessRulesPage() {
 
       <div className="px-3 py-2 text-xs">
         <span className="font-medium text-primary-700">All</span>
-        <span className="ml-1 text-slate-400">({rules.length})</span>
+        <span className="mx-2 text-slate-400">&gt;</span>
+        <span className="text-primary-700">Table = incident</span>
         <span className="ml-4 text-slate-400">Rules run lowest Order first, when an incident is created on the New Incident page.</span>
         {notice && <span className="ml-4 text-amber-600">{notice}</span>}
       </div>
 
       <div className="overflow-x-auto">
-        <table className="w-full text-[11px]">
+        <table className="w-full text-sm">
           <thead>
             <tr className="border-y border-slate-300">
               <th className="w-10 px-3 py-3 text-left">
@@ -454,7 +450,7 @@ export default function BusinessRulesPage() {
               </th>
               {COLUMNS.map(th)}
             </tr>
-            <tr className="border-b border-slate-300 bg-slate-100">
+            <tr className={`border-b border-slate-300 bg-slate-100 ${showFilters ? '' : 'hidden'}`}>
               <th className="px-3 py-2 text-left text-slate-400" aria-hidden="true">
                 ⌕
               </th>
@@ -472,9 +468,9 @@ export default function BusinessRulesPage() {
             </tr>
           </thead>
           <tbody>
-            {visible.map((r, i) => (
-              <tr key={r.id} className={`border-b border-slate-100 hover:bg-primary-50/40 ${i % 2 ? 'bg-slate-50' : 'bg-white'}`}>
-                <td className="px-2.5 py-2 align-top">
+            {visible.map((r) => (
+              <tr key={r.id} className="border-b border-slate-200 bg-white hover:bg-primary-50/40">
+                <td className="px-2.5 py-3.5 align-top">
                   <input
                     type="checkbox"
                     checked={checked.has(r.id)}
@@ -489,19 +485,16 @@ export default function BusinessRulesPage() {
                     aria-label={`Select ${r.name}`}
                   />
                 </td>
-                <td className="whitespace-nowrap px-2.5 py-2 align-top">
+                <td className="whitespace-nowrap px-2.5 py-3.5 align-top">
                   <button onClick={() => open(r, false)} className="font-medium text-primary-700 hover:underline">
                     {r.name}
                   </button>
                 </td>
-                <td className="px-2.5 py-2 align-top text-slate-800">{String(r.enabled)}</td>
-                <td className="whitespace-nowrap px-2.5 py-2 align-top text-slate-800">{TABLE}</td>
-                <td className="px-2.5 py-2 align-top text-primary-700">{APPLICATION}</td>
-                <td className="px-2.5 py-2 align-top text-right text-slate-800">{r.order}</td>
-                <td className="whitespace-nowrap px-2.5 py-2 align-top text-slate-700">{stamp(r.updatedAt) || EMPTY}</td>
-                <td className="px-2.5 py-2 align-top text-slate-800">{WHEN}</td>
-                <td className="max-w-xs px-2.5 py-2 align-top text-slate-800">{getCol('condition')(r)}</td>
-                <td className="max-w-xs px-2.5 py-2 align-top text-slate-800">{getCol('actions')(r)}</td>
+                <td className="px-2.5 py-3.5 align-top text-slate-800">{String(r.enabled)}</td>
+                <td className="whitespace-nowrap px-2.5 py-3.5 align-top text-slate-800">{TABLE}</td>
+                <td className="px-2.5 py-3.5 align-top text-primary-700">{APPLICATION}</td>
+                <td className="px-2.5 py-3.5 align-top text-slate-800">{r.order}</td>
+                <td className="whitespace-nowrap px-2.5 py-3.5 align-top text-slate-700">{stamp(r.updatedAt) || EMPTY}</td>
               </tr>
             ))}
             {visible.length === 0 && (
@@ -537,8 +530,17 @@ export default function BusinessRulesPage() {
         <button disabled={page === 0} onClick={() => setPage(page - 1)} aria-label="Previous page" className="px-1 disabled:text-slate-300">
           ‹
         </button>
-        <span>
-          {rows.length === 0 ? 0 : page * PAGE_SIZE + 1} to {Math.min((page + 1) * PAGE_SIZE, rows.length)} of {rows.length}
+        <span className="flex items-center gap-2">
+          <input
+            type="number"
+            min={1}
+            max={pages}
+            value={page + 1}
+            onChange={(e) => setPage(Math.min(pages - 1, Math.max(0, (Number(e.target.value) || 1) - 1)))}
+            aria-label="Page number"
+            className={`${input} w-14 text-center`}
+          />
+          to {Math.min((page + 1) * PAGE_SIZE, rows.length)} of {rows.length}
         </span>
         <button disabled={page >= pages - 1} onClick={() => setPage(page + 1)} aria-label="Next page" className="px-1 disabled:text-slate-300">
           ›
