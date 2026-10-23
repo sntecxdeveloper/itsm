@@ -184,7 +184,7 @@ export default function RolesPage() {
         <span className="font-medium text-slate-800">Roles</span>
       </div>
       <p className="max-w-3xl text-xs text-slate-500">
-        Make a role such as "Company B admin", choose which Setup sections it may see or change, then give it to a person. An administrator
+        Make a role such as "Company admin", choose which Setup sections it may see or change, then give it to a person. An administrator
         always has everything; other roles only get what you tick here.
       </p>
       {notice && <p className={`rounded px-3 py-1.5 text-xs ${notice.tone === 'ok' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>{notice.text}</p>}
@@ -206,7 +206,7 @@ export default function RolesPage() {
           <div className="space-y-3">
             <section className="space-y-2 rounded-lg border border-slate-200 bg-white p-4">
               <h2 className="text-[13px] font-semibold text-slate-900">New role</h2>
-              <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Role name, e.g. Company B admin" aria-label="Role name" className={`${field} w-full`} />
+              <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Role name, e.g. Company admin" aria-label="Role name" className={`${field} w-full`} />
               <input value={description} onChange={(e) => setDescription(e.target.value)} placeholder="What it is for (optional)" aria-label="Description" className={`${field} w-full`} />
               <label className="block text-[11px] font-medium text-slate-600">
                 Starts from
