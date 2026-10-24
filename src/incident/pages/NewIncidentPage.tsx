@@ -35,6 +35,9 @@ const PRIORITY_BY_LABEL: Record<string, string> = {
   '4 - Low': 'LOW',
 };
 
+/** Where Save keeps the form until it is submitted. */
+const DRAFT_KEY = 'dex.newIncidentDraft.v1';
+
 const actionBtn =
   'rounded border border-slate-300 bg-white px-3 py-1.5 text-[13px] font-medium text-slate-800 hover:bg-slate-50 disabled:text-slate-300 disabled:hover:bg-white';
 
@@ -130,16 +133,110 @@ export default function NewIncidentPage() {
   const priority = derivedPriority(fields.impact, fields.urgency);
   const assignmentGroups = useAssignmentGroups();
 
-  const submit = async () => {
-    if (!fields.requesterName.trim()) return setError('Requester name is required.');
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(fields.requesterEmail.trim())) return setError('Enter a valid requester email address.');
-    const extra = extraRecipients.split(/[,;\s]+/).filter(Boolean);
+  /** What is wrong with the form, or null when it can be saved or submitted. */
+  const validate = (): string | null => {
+    if (!fields.requesterName.trim()) return 'Requester name is required.';
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(fields.requesterEmail.trim())) return 'Enter a valid requester email address.';
     const badExtra = extra.find((address) => !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(address));
-    if (sendMail && badExtra) return setError(`Invalid additional email address: ${badExtra}`);
-    if (!shortDescription.trim()) return setError('Short description is required.');
+    if (sendMail && badExtra) return `Invalid additional email address: ${badExtra}`;
+    if (!shortDescription.trim()) return 'Short description is required.';
     const emptyRequired = customDefs.filter((f) => f.required && !isFilled(customValues[f.key])).map((f) => f.key);
     setCustomMissing(emptyRequired);
-    if (emptyRequired.length > 0) return setError('Fill in the required fields under More details.');
+    if (emptyRequired.length > 0) return 'Fill in the required fields under More details.';
+    return null;
+  };
+  const extra = extraRecipients.split(/[,;\s]+/).filter(Boolean);
+
+  // Save keeps the form as a draft in this browser; Submit is only available once it has been saved.
+  const [saved, setSaved] = useState(false);
+  const [menu, setMenu] = useState<{ x: number; y: number } | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+
+  const saveDraft = () => {
+    const problem = validate();
+    if (problem) {
+      setNotice(null);
+      return setError(problem);
+    }
+    try {
+      localStorage.setItem(DRAFT_KEY, JSON.stringify({ fields, shortDescription, description, sendMail, extraRecipients, customValues }));
+    } catch {
+      setNotice(null);
+      return setError('The browser would not save the draft (storage is full or blocked).');
+    }
+    setError(null);
+    setSaved(true);
+    setNotice('Record saved.');
+  };
+
+  const loadDraft = (): boolean => {
+    try {
+      const raw = localStorage.getItem(DRAFT_KEY);
+      if (!raw) return false;
+      const d = JSON.parse(raw);
+      setFields({ ...NO_FIELDS, ...d.fields });
+      setShortDescription(d.shortDescription ?? '');
+      setDescription(d.description ?? '');
+      setSendMail(d.sendMail ?? true);
+      setExtraRecipients(d.extraRecipients ?? '');
+      setCustomValues(d.customValues ?? {});
+      return true;
+    } catch {
+      return false;
+    }
+  };
+
+  const reloadForm = () => {
+    setError(null);
+    if (loadDraft()) {
+      setSaved(true);
+      setNotice('Reloaded your saved draft.');
+    } else {
+      setFields(NO_FIELDS);
+      setShortDescription('');
+      setDescription('');
+      setSendMail(true);
+      setExtraRecipients('');
+      setCustomValues({});
+      setSaved(false);
+      setNotice(null);
+    }
+  };
+
+  // A draft saved earlier comes back when the page opens.
+  useEffect(() => {
+    if (loadDraft()) {
+      setSaved(true);
+      setNotice('Reloaded your saved draft.');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // The right-click menu closes on any click, scroll or Escape.
+  useEffect(() => {
+    if (!menu) return;
+    const close = () => setMenu(null);
+    const esc = (e: KeyboardEvent) => e.key === 'Escape' && close();
+    window.addEventListener('click', close);
+    window.addEventListener('scroll', close, true);
+    window.addEventListener('keydown', esc);
+    return () => {
+      window.removeEventListener('click', close);
+      window.removeEventListener('scroll', close, true);
+      window.removeEventListener('keydown', esc);
+    };
+  }, [menu]);
+
+  const runMenu = (cmd: 'save' | 'url' | 'reload') => {
+    setMenu(null);
+    if (cmd === 'save') saveDraft();
+    else if (cmd === 'url') navigator.clipboard?.writeText(window.location.href).catch(() => setError('The browser would not copy to the clipboard.'));
+    else reloadForm();
+  };
+
+  const submit = async () => {
+    const problem = validate();
+    if (problem) return setError(problem);
     setBusy(true);
     setError(null);
     try {
@@ -176,6 +273,11 @@ export default function NewIncidentPage() {
       // If the browser refuses the write (storage full), the incident is still created without them.
       saveAttachments(ticket.id, attachments);
       dispatch(fetchTickets());
+      try {
+        localStorage.removeItem(DRAFT_KEY);
+      } catch {
+        /* storage unavailable: nothing to clear */
+      }
       // Same send as "Notification template" on the Incidents list: the saved Mail ID (stored just above) plus any extras.
       // With an assignment group chosen, every enabled technician and user in that group is mailed too.
       const groupId = ticket.assignmentGroupId ?? chosen?.id;
@@ -200,7 +302,12 @@ export default function NewIncidentPage() {
   };
 
   return (
-    <div className="-mx-1 [&_input]:!py-1 [&_select]:!py-1 [&_textarea]:!py-1 [&_input]:!text-[11px] [&_select]:!text-[11px] [&_textarea]:!text-[11px] [&_label]:!text-[11px] [&_button]:!text-[11px]">
+    <div
+      onContextMenu={(e) => {
+        e.preventDefault();
+        setMenu({ x: e.clientX, y: e.clientY });
+      }}
+      className="-mx-1 [&_input]:!py-1 [&_select]:!py-1 [&_textarea]:!py-1 [&_input]:!text-[11px] [&_select]:!text-[11px] [&_textarea]:!text-[11px] [&_label]:!text-[11px] [&_button]:!text-[11px]">
       <div className="flex flex-wrap items-center gap-3 border-b border-slate-200 bg-slate-100 px-3 py-2">
         <button onClick={() => navigate('/tickets/incidents')} aria-label="Back to incidents" className={actionBtn}>
           ← Back
@@ -212,7 +319,8 @@ export default function NewIncidentPage() {
           </button>
           <button
             onClick={submit}
-            disabled={busy}
+            disabled={busy || !saved}
+            title={saved ? undefined : 'Save the record first: right-click and choose Save'}
             className="rounded bg-primary-600 px-4 py-1.5 text-[13px] font-medium text-white hover:bg-primary-700 disabled:opacity-60"
           >
             {busy ? 'Submitting…' : 'Submit'}
@@ -220,6 +328,13 @@ export default function NewIncidentPage() {
         </div>
       </div>
 
+      {!saved && (
+        <p className="bg-amber-50 px-4 py-2 text-[13px] text-amber-800">
+          Fill in the required fields, then <strong>right-click</strong> anywhere on this form and choose <strong>Save</strong>. The record has to be saved before it can
+          be submitted.
+        </p>
+      )}
+      {notice && !error && <p className="bg-emerald-50 px-4 py-2 text-[13px] text-emerald-800">{notice}</p>}
       {error && <p className="bg-red-50 px-4 py-2 text-[13px] text-red-600">{error}</p>}
 
       <div className="grid gap-x-10 gap-y-3 bg-white p-5 lg:grid-cols-2">
@@ -379,6 +494,29 @@ export default function NewIncidentPage() {
           <h2 className="mb-2 text-[13px] font-semibold text-slate-700">More details</h2>
           <CustomFieldsForm fields={customDefs} values={customValues} missing={customMissing} onChange={(k, v) => setCustomValues((cur) => ({ ...cur, [k]: v }))} />
         </div>
+      )}
+
+      {menu && (
+        <ul
+          role="menu"
+          style={{ left: Math.min(menu.x, window.innerWidth - 200), top: Math.min(menu.y, window.innerHeight - 140) }}
+          className="fixed z-50 w-48 rounded border border-slate-200 bg-white py-1 shadow-lg"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {(
+            [
+              ['save', 'Save'],
+              ['url', 'Copy URL'],
+              ['reload', 'Reload form'],
+            ] as const
+          ).map(([cmd, label], i) => (
+            <li key={cmd} role="none" className={i === 1 ? 'border-t border-slate-200' : ''}>
+              <button role="menuitem" onClick={() => runMenu(cmd)} className="block w-full px-4 py-1.5 text-left !text-[13px] text-slate-800 hover:bg-primary-600 hover:text-white">
+                {label}
+              </button>
+            </li>
+          ))}
+        </ul>
       )}
     </div>
   );
