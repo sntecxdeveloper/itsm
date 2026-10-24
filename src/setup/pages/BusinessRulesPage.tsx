@@ -69,6 +69,7 @@ export default function BusinessRulesPage() {
   const [page, setPage] = useState(0);
   const [checked, setChecked] = useState<Set<string>>(new Set());
   const [testing, setTesting] = useState(false);
+  const [tab, setTab] = useState<'when' | 'actions'>('when');
   const [menu, setMenu] = useState<{ x: number; y: number } | null>(null);
 
   const commit = (next: BusinessRule[]) => {
@@ -79,6 +80,7 @@ export default function BusinessRulesPage() {
   const open = (rule: BusinessRule, fresh: boolean) => {
     setEditing(JSON.parse(JSON.stringify(rule)) as BusinessRule);
     setIsNew(fresh);
+    setTab('when');
     setProblem(null);
     setNotice(null);
   };
@@ -244,125 +246,189 @@ export default function BusinessRulesPage() {
 
   /* ===================== record form ===================== */
   if (editing) {
+    const checkRow = 'flex items-center gap-3 text-sm text-slate-700';
+    const labelCls = 'text-right text-sm text-slate-700';
+    const tabBtn = (k: 'when' | 'actions', label: string) => (
+      <button
+        key={k}
+        onClick={() => setTab(k)}
+        role="tab"
+        aria-selected={tab === k}
+        className={`border-x border-t px-4 py-2 text-sm ${tab === k ? 'border-t-2 border-x-slate-200 border-t-emerald-700 bg-white text-emerald-800' : 'border-slate-200 bg-slate-100 text-slate-700 hover:bg-slate-50'}`}
+      >
+        {label}
+      </button>
+    );
+    const submitBtn = (
+      <button
+        onClick={save}
+        disabled={isNew}
+        title={isNew ? 'Save the record first: right-click and choose Save' : undefined}
+        className="rounded-md bg-indigo-600 px-5 py-1.5 text-sm font-semibold text-white hover:bg-indigo-700 disabled:opacity-50"
+      >
+        {isNew ? 'Submit' : 'Update'}
+      </button>
+    );
+    const addCondition = (match: 'all' | 'any') => patch({ match, conditions: [...editing.conditions, { id: newId(), field: 'category', op: 'is', value: '' }] });
+    const outlineBtn = 'rounded border border-indigo-300 bg-white px-3 py-1.5 text-sm font-medium text-indigo-700 hover:bg-indigo-50';
     return (
       <div
-        className="-mx-1 min-h-[60vh]"
+        className="-mx-1 min-h-[70vh]"
         onContextMenu={(e) => {
           e.preventDefault();
           setMenu({ x: e.clientX, y: e.clientY });
         }}
       >
-        <div className="flex flex-wrap items-center gap-3 border-b border-slate-200 bg-slate-100 px-3 py-2">
-          <button onClick={() => setEditing(null)} className={btn} aria-label="Back to business rules">
-            ← Back
+        <div className="flex items-center gap-3 border-b border-slate-200 bg-slate-100 px-3 py-2">
+          <button onClick={() => setEditing(null)} className="rounded-md border border-indigo-300 bg-white px-3 py-1.5 text-indigo-700 hover:bg-indigo-50" aria-label="Back to business rules">
+            ‹
           </button>
-          <h1 className="text-sm font-semibold text-slate-900">
-            Business Rule{editing.name ? ` · ${editing.name}` : ''}
-            {isNew && <span className="ml-2 font-normal text-slate-500">New record</span>}
+          <h1 className="text-sm font-semibold leading-tight text-slate-900">
+            Business Rule
+            <span className="block">{isNew ? 'New record' : editing.name}</span>
           </h1>
-          <div className="ml-auto flex gap-2">
+          <div className="ml-auto flex items-center gap-2">
             <button onClick={() => setEditing(null)} className={btn}>
               Cancel
             </button>
-            <button
-              onClick={save}
-              disabled={isNew}
-              title={isNew ? 'Save the record first: right-click and choose Save' : undefined}
-              className="rounded bg-primary-600 px-4 py-1 text-xs font-semibold text-white hover:bg-primary-700 disabled:opacity-50"
-            >
-              {isNew ? 'Submit' : 'Update'}
-            </button>
+            {submitBtn}
           </div>
         </div>
 
-        <div className="space-y-5 p-4">
+        <div className="space-y-4 p-4">
           {isNew && (
-            <p className="rounded border border-sky-200 bg-sky-50 px-3 py-2 text-sm text-sky-800">
+            <p className="rounded border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
               Fill in the Name, then <strong>right-click</strong> anywhere on this form and choose <strong>Save</strong>. The record has to be saved before it can be submitted.
             </p>
           )}
           {notice === 'Record saved.' && <p className="rounded border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800">Record saved.</p>}
           {problem && <p className="rounded border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{problem}</p>}
 
+          <p className="rounded border border-sky-300 bg-sky-100 px-3 py-3 text-sm text-slate-800">
+            A business rule runs when an incident is created on the New Incident page. Use business rules to automatically change values in form fields (assign a
+            group or technician, set the priority) or email a group when the specified conditions are met.
+          </p>
+
           <div className="grid gap-x-10 gap-y-3 lg:grid-cols-2">
-            <label className="block text-xs font-medium text-slate-600">
-              <span className="text-red-600">* </span>Name
-              <input value={editing.name} onChange={(e) => patch({ name: e.target.value })} className={`${field} mt-1`} placeholder="Software ticket assignment" autoFocus />
-            </label>
-            <label className="block text-xs font-medium text-slate-600">
-              Table
-              <input value={TABLE} disabled className={`${field} mt-1`} />
-            </label>
-            <label className="block text-xs font-medium text-slate-600">
-              Application
-              <input value={APPLICATION} disabled className={`${field} mt-1`} />
-            </label>
-            <label className="block text-xs font-medium text-slate-600">
-              When to run
-              <input value={`${WHEN} the incident is saved (when it is created)`} disabled className={`${field} mt-1`} />
-            </label>
-            <label className="block text-xs font-medium text-slate-600">
-              Order
-              <input
-                type="number"
-                value={editing.order}
-                onChange={(e) => patch({ order: Number.isFinite(e.target.valueAsNumber) ? e.target.valueAsNumber : 100 })}
-                className={`${field} mt-1`}
-              />
-              <span className="mt-0.5 block font-normal text-slate-400">Lower numbers run first.</span>
-            </label>
-            <label className="flex items-center gap-2 self-start pt-6 text-sm text-slate-700">
-              <input type="checkbox" checked={editing.enabled} onChange={(e) => patch({ enabled: e.target.checked })} className="h-4 w-4" />
-              Active
-            </label>
-            <label className="block text-xs font-medium text-slate-600 lg:col-span-2">
-              Description
-              <input value={editing.description} onChange={(e) => patch({ description: e.target.value })} className={`${field} mt-1`} placeholder="What is this rule for?" />
-            </label>
+            <div className="grid grid-cols-[110px_minmax(0,28rem)] items-center gap-x-3 gap-y-3">
+              <label htmlFor="br-name" className={labelCls}>
+                <span className="text-red-600">* </span>Name
+              </label>
+              <input id="br-name" value={editing.name} onChange={(e) => patch({ name: e.target.value })} className={field} placeholder="Software ticket assignment" autoFocus />
+              <label htmlFor="br-table" className={labelCls}>
+                Table
+              </label>
+              <select id="br-table" value={TABLE} onChange={() => undefined} className={field}>
+                <option>{TABLE}</option>
+              </select>
+              <label htmlFor="br-desc" className={labelCls}>
+                Description
+              </label>
+              <input id="br-desc" value={editing.description} onChange={(e) => patch({ description: e.target.value })} className={field} placeholder="What is this rule for?" />
+            </div>
+            <div className="grid grid-cols-[110px_minmax(0,22rem)] items-center gap-x-3 gap-y-3">
+              <label htmlFor="br-app" className={labelCls}>
+                Application
+              </label>
+              <input id="br-app" value={APPLICATION} disabled className={field} />
+              <label htmlFor="br-active" className={labelCls}>
+                Active
+              </label>
+              <input id="br-active" type="checkbox" checked={editing.enabled} onChange={(e) => patch({ enabled: e.target.checked })} className="h-4 w-4" />
+            </div>
           </div>
 
-          {/* conditions */}
-          <section className="space-y-2 rounded border border-slate-200 p-3">
-            <div className="flex flex-wrap items-center gap-2 text-sm text-slate-700">
-              <span className="font-semibold">Condition</span>
-              <select value={editing.match} onChange={(e) => patch({ match: e.target.value as 'all' | 'any' })} className={`${field} w-auto`}>
-                <option value="all">All of these must match</option>
-                <option value="any">Any one of these must match</option>
-              </select>
-            </div>
-            {editing.conditions.map((c) => {
-              const needsValue = OPERATORS.find((o) => o.key === c.op)?.needsValue;
-              const upd = (p: Partial<typeof c>) => patch({ conditions: editing.conditions.map((x) => (x.id === c.id ? { ...x, ...p } : x)) });
-              return (
-                <div key={c.id} className="grid gap-2 sm:grid-cols-[1fr_1fr_1.4fr_auto]">
-                  <select value={c.field} onChange={(e) => upd({ field: e.target.value as FactKey, value: '' })} className={field}>
-                    {FACT_KEYS.map((k) => (
-                      <option key={k} value={k}>
-                        {FACT_LABEL[k]}
-                      </option>
-                    ))}
-                  </select>
-                  <select value={c.op} onChange={(e) => upd({ op: e.target.value as typeof c.op })} className={field}>
-                    {OPERATORS.map((o) => (
-                      <option key={o.key} value={o.key}>
-                        {o.label}
-                      </option>
-                    ))}
-                  </select>
-                  {needsValue ? valueInput(c.field, c.value, (v) => upd({ value: v })) : <span />}
-                  <button className={`${btn} text-red-600`} onClick={() => patch({ conditions: editing.conditions.filter((x) => x.id !== c.id) })} aria-label="Remove condition">
-                    ✕
-                  </button>
-                </div>
-              );
-            })}
-            <button className={btn} onClick={() => patch({ conditions: [...editing.conditions, { id: newId(), field: 'category', op: 'is', value: '' }] })}>
-              + Add condition
-            </button>
-            {editing.conditions.length === 0 && <p className="text-xs text-amber-600">With no conditions the rule runs for every new incident.</p>}
-          </section>
+          <div role="tablist" className="flex gap-1 pt-4">
+            {tabBtn('when', 'When to run')}
+            {tabBtn('actions', 'Actions')}
+          </div>
 
-          {/* actions */}
+          {tab === 'when' && (
+            <section className="space-y-4 rounded-b border border-slate-200 bg-white p-4 shadow-sm">
+              <p className="rounded border border-sky-300 bg-sky-100 px-3 py-3 text-sm text-slate-800">
+                Specify when the business rule should run. Use <strong>Filter Conditions</strong> to specify under which conditions the business rule should run.
+              </p>
+              <div className="grid gap-x-10 gap-y-3 lg:grid-cols-2">
+                <div className="grid grid-cols-[110px_minmax(0,22rem)] items-center gap-x-3 gap-y-3">
+                  <label htmlFor="br-when" className={labelCls}>
+                    When
+                  </label>
+                  <select id="br-when" value={WHEN} onChange={() => undefined} className={field}>
+                    <option value={WHEN}>{WHEN}</option>
+                  </select>
+                  <label htmlFor="br-order" className={labelCls}>
+                    Order
+                  </label>
+                  <input
+                    id="br-order"
+                    type="number"
+                    value={editing.order}
+                    onChange={(e) => patch({ order: Number.isFinite(e.target.valueAsNumber) ? e.target.valueAsNumber : 100 })}
+                    className={`${field} text-right`}
+                  />
+                </div>
+                <div className="space-y-3 lg:pl-24">
+                  <label className={checkRow}>
+                    <span className="w-16 text-right">Insert</span>
+                    <input type="checkbox" checked disabled className="h-4 w-4" aria-label="Insert" />
+                  </label>
+                  {['Update', 'Delete', 'Query'].map((n) => (
+                    <label key={n} className={`${checkRow} text-slate-400`} title={`${n} is not supported yet: rules run when an incident is created`}>
+                      <span className="w-16 text-right">{n}</span>
+                      <input type="checkbox" disabled className="h-4 w-4" aria-label={n} />
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-[110px_1fr] gap-x-3 gap-y-2">
+                <span className={`${labelCls} pt-2`}>Filter Conditions</span>
+                <div className="space-y-2">
+                  <div className="flex flex-wrap gap-2">
+                    <button className={outlineBtn} onClick={() => addCondition('all')}>
+                      Add Filter Condition
+                    </button>
+                    <button className={outlineBtn} onClick={() => addCondition('any')}>
+                      Add "OR" Clause
+                    </button>
+                  </div>
+                  {editing.conditions.map((c, i) => {
+                    const needsValue = OPERATORS.find((o) => o.key === c.op)?.needsValue;
+                    const upd = (p: Partial<typeof c>) => patch({ conditions: editing.conditions.map((x) => (x.id === c.id ? { ...x, ...p } : x)) });
+                    return (
+                      <div key={c.id} className="grid items-center gap-2 sm:grid-cols-[3rem_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.3fr)_auto]">
+                        <span className="text-right text-xs font-semibold uppercase text-slate-500">{i === 0 ? '' : editing.match === 'all' ? 'and' : 'or'}</span>
+                        <select value={c.field} onChange={(e) => upd({ field: e.target.value as FactKey, value: '' })} className={field}>
+                          {FACT_KEYS.map((k) => (
+                            <option key={k} value={k}>
+                              {FACT_LABEL[k]}
+                            </option>
+                          ))}
+                        </select>
+                        <select value={c.op} onChange={(e) => upd({ op: e.target.value as typeof c.op })} className={field}>
+                          {OPERATORS.map((o) => (
+                            <option key={o.key} value={o.key}>
+                              {o.label}
+                            </option>
+                          ))}
+                        </select>
+                        {needsValue ? valueInput(c.field, c.value, (v) => upd({ value: v })) : <span />}
+                        <button className={`${btn} text-red-600`} onClick={() => patch({ conditions: editing.conditions.filter((x) => x.id !== c.id) })} aria-label="Remove condition">
+                          ✕
+                        </button>
+                      </div>
+                    );
+                  })}
+                  {editing.conditions.length === 0 && <p className="text-xs text-amber-600">With no conditions the rule runs for every new incident.</p>}
+                  {editing.conditions.length > 1 && (
+                    <p className="text-xs text-slate-500">{editing.match === 'all' ? 'Runs when all of these match.' : 'Runs when any one of these matches.'}</p>
+                  )}
+                </div>
+              </div>
+            </section>
+          )}
+
+          {tab === 'actions' && (
           <section className="space-y-2 rounded border border-slate-200 p-3">
             <p className="text-sm font-semibold text-slate-700">Actions</p>
             {editing.actions.map((a) => {
@@ -421,6 +487,9 @@ export default function BusinessRulesPage() {
               Stop — do not run the rules below this one when it matches
             </label>
           </section>
+          )}
+
+          <div>{submitBtn}</div>
         </div>
 
         {menu && (
