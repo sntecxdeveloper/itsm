@@ -15,6 +15,7 @@ import CustomFieldsForm from '../../components/customfields/CustomFieldsForm';
 import { useAssignmentGroups } from '../../hooks/useAssignmentGroups';
 import { emailTicketsWithTemplate, groupMemberEmails } from '../utils/ticketNotifications';
 import { evaluateRules, loadRules, NO_FACTS } from '../../utils/businessRules';
+import { htmlToText } from '../../utils/emailHtml';
 import {
   LEVELS,
   NO_FIELDS,
@@ -145,7 +146,7 @@ export default function NewIncidentPage() {
       // Business rules (Setup → Automation) fill in the assignment, priority and mailing the person left to the system.
       const outcome = evaluateRules(loadRules(), { ...fields, priority: priority ?? '', shortDescription, description });
       if (outcome.abortedBy) {
-        setError(`The incident was not created: business rule “${outcome.abortedBy}” stops it.${outcome.messages.length ? ` ${outcome.messages.join(' ')}` : ''}`);
+        setError(`The incident was not created: business rule “${outcome.abortedBy}” stops it.${outcome.messages.length ? ` ${outcome.messages.map(htmlToText).join(' ')}` : ''}`);
         setBusy(false);
         return;
       }
@@ -189,8 +190,9 @@ export default function NewIncidentPage() {
         const applied = `Business rule${outcome.matched.length === 1 ? '' : 's'} applied: ${outcome.matched.map((r) => r.name).join(', ')}.`;
         mailNote = mailNote ? `${applied} ${mailNote}` : applied;
       }
-      if (outcome.messages.length) mailNote = [...outcome.messages, mailNote].filter(Boolean).join(' ');
-      navigate(`/tickets/incidents/${ticket.id}`, { state: mailNote ? { mailNote } : undefined });
+      navigate(`/tickets/incidents/${ticket.id}`, {
+        state: mailNote || outcome.messages.length ? { mailNote: mailNote ?? undefined, ruleMessages: outcome.messages } : undefined,
+      });
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to create the incident');
       setBusy(false);

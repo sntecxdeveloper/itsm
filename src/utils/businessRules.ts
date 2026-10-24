@@ -113,7 +113,7 @@ export interface BusinessRule {
   match: 'all' | 'any';
   conditions: Condition[];
   actions: RuleAction[];
-  /** Show `message` to the person once the incident is created. */
+  /** Show `message` (formatted text, stored as HTML) to the person once the incident is created. */
   addMessage: boolean;
   message: string;
   /** Do not create the incident when this rule matches. */
@@ -125,6 +125,14 @@ export interface BusinessRule {
   /** ISO time of the last save. */
   updatedAt: string;
 }
+
+/** The text of a rule message, which the editor stores as HTML after a marker. Empty when only markup is left. */
+export const messageText = (message: string) =>
+  message
+    .replace(/^<!--html-->/, '')
+    .replace(/<[^>]*>/g, '')
+    .replace(/&nbsp;/g, ' ')
+    .trim();
 
 export const newId = () => Math.random().toString(36).slice(2, 10);
 
@@ -219,7 +227,7 @@ export function evaluateRules(rules: BusinessRule[], facts: Facts): RuleOutcome 
   for (const rule of [...rules].sort((a, b) => a.order - b.order)) {
     if (!rule.enabled || !rule.events.insert || !ruleMatches(rule, facts)) continue;
     out.matched.push(rule);
-    if (rule.addMessage && rule.message.trim()) out.messages.push(rule.message.trim());
+    if (rule.addMessage && messageText(rule.message)) out.messages.push(rule.message);
     if (rule.abort) {
       out.abortedBy = rule.name;
       break;
@@ -265,6 +273,6 @@ export function ruleProblem(rule: BusinessRule): string | null {
   for (const a of rule.actions) {
     if (!a.value) return `Choose a value for “${ACTION_LABEL[a.type]}”.`;
   }
-  if (rule.addMessage && !rule.message.trim()) return 'Type the message to show, or untick Add message.';
+  if (rule.addMessage && !messageText(rule.message)) return 'Type the message to show, or untick Add message.';
   return null;
 }

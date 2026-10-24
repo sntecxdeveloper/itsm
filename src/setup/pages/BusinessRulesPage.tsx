@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
+import RichTextEditor from '../../components/RichTextEditor';
 import { useAssignmentGroups } from '../../hooks/useAssignmentGroups';
 import { getCategoryMap } from '../../utils/categoryStore';
 import { loadFormSettings } from '../../incident/utils/incidentFormStore';
@@ -578,16 +579,16 @@ export default function BusinessRulesPage() {
                 </label>
                 <div className="space-y-2">
                   <input id="br-msg" type="checkbox" checked={editing.addMessage} onChange={(e) => patch({ addMessage: e.target.checked })} className="h-4 w-4" />
-                  {editing.addMessage && (
-                    <input
-                      value={editing.message}
-                      onChange={(e) => patch({ message: e.target.value })}
-                      className={`${field} max-w-xl`}
-                      placeholder="Shown on the incident after it is created"
-                      aria-label="Message"
-                    />
-                  )}
                 </div>
+                {editing.addMessage && (
+                  <>
+                    <span className={`${labelCls} pt-2`}>Message</span>
+                    <div className="max-w-3xl overflow-hidden rounded-md border border-slate-300 bg-white">
+                      <RichTextEditor value={editing.message} resetKey={editing.id} onChange={(message) => patch({ message })} />
+                      <p className="border-t border-slate-200 px-3 py-1.5 text-xs text-slate-500">Shown at the top of the incident right after it is created.</p>
+                    </div>
+                  </>
+                )}
 
                 <label htmlFor="br-abort" className={`${labelCls} pt-1`}>
                   Abort action

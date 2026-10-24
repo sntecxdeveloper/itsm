@@ -11,6 +11,11 @@ export function bodyToHtml(body: string): string {
   return isHtmlBody(body) ? body.slice(HTML_MARKER.length) : escapeHtml(body).replace(/\n/g, '<br>');
 }
 
+/** The text of a body, without markup: for places that cannot show formatting. */
+export function htmlToText(body: string): string {
+  return (new DOMParser().parseFromString(bodyToHtml(body), 'text/html').body.textContent ?? '').trim();
+}
+
 /** Removes scripts, frames, event handlers and javascript: links so markup can be shown in the page. */
 export function sanitizeHtml(html: string): string {
   const doc = new DOMParser().parseFromString(html, 'text/html');

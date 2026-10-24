@@ -16,6 +16,7 @@ import { getCategoryMap } from '../../utils/categoryStore';
 import { formatSize, loadAttachments, saveAttachments, type Attachment } from '../utils/incidentAttachments';
 import { applicableSlas, dueAt, durationLabel, loadSlas } from '../../utils/sla';
 import { NO_FACTS } from '../../utils/businessRules';
+import { bodyToHtml, sanitizeHtml } from '../../utils/emailHtml';
 import { allowedStates, loadTransitions } from '../../utils/lifecycle';
 import type { ItsmTicket, TicketPriority, TicketStatus } from '../../types';
 
@@ -223,6 +224,8 @@ export default function IncidentFormPage() {
   const [message, setMessage] = useState<string | null>(
     (location.state as { mailNote?: string } | null)?.mailNote ?? null,
   );
+  // Messages from business rules with "Add message", sent along when the incident was just created.
+  const ruleMessages = (location.state as { ruleMessages?: string[] } | null)?.ruleMessages ?? [];
   const [tab, setTab] = useState<Tab>('Notes');
   const [linkTab, setLinkTab] = useState<LinkTab>('Task SLAs');
   const username = useAppSelector((s) => s.auth.user?.username) ?? 'unknown';
@@ -494,6 +497,13 @@ export default function IncidentFormPage() {
           </button>
         </div>
       </div>
+      {ruleMessages.map((m, i) => (
+        <div
+          key={i}
+          className="bg-sky-50 px-3 py-1.5 text-[13px] text-sky-900 [&_a]:underline [&_ol]:ml-5 [&_ol]:list-decimal [&_ul]:ml-5 [&_ul]:list-disc"
+          dangerouslySetInnerHTML={{ __html: sanitizeHtml(bodyToHtml(m)) }}
+        />
+      ))}
       {message && <p className="bg-amber-50 px-3 py-1.5 text-[13px] text-amber-700">{message}</p>}
 
       {/* Form */}
