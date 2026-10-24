@@ -6,7 +6,7 @@
 
 export const RULES_KEY = 'dex.businessRules.v1';
 
-export type FactKey = 'category' | 'subcategory' | 'impact' | 'urgency' | 'priority' | 'channel' | 'shortDescription' | 'description' | 'requesterEmail';
+export type FactKey = 'category' | 'subcategory' | 'impact' | 'urgency' | 'priority' | 'channel' | 'assignmentGroup' | 'shortDescription' | 'description' | 'requesterEmail';
 
 /** What a rule can look at on the incident being created. */
 export type Facts = Record<FactKey, string>;
@@ -18,6 +18,7 @@ export const NO_FACTS: Facts = {
   urgency: '',
   priority: '',
   channel: '',
+  assignmentGroup: '',
   shortDescription: '',
   description: '',
   requesterEmail: '',
@@ -30,6 +31,7 @@ export const FACT_LABEL: Record<FactKey, string> = {
   urgency: 'Urgency',
   priority: 'Priority',
   channel: 'Channel',
+  assignmentGroup: 'Assignment group',
   shortDescription: 'Short description',
   description: 'Description',
   requesterEmail: 'Requester email',
@@ -102,6 +104,11 @@ export interface BusinessRule {
   match: 'all' | 'any';
   conditions: Condition[];
   actions: RuleAction[];
+  /** Show `message` to the person once the incident is created. */
+  addMessage: boolean;
+  message: string;
+  /** Do not create the incident when this rule matches. */
+  abort: boolean;
   /** Do not run the rules below this one once it has matched. */
   stop: boolean;
   /** Rules run lowest order first; ties keep the saved order. */
@@ -122,6 +129,9 @@ export const blankRule = (): BusinessRule => ({
   match: 'all',
   conditions: [{ id: newId(), field: 'category', op: 'is', value: '' }],
   actions: [{ id: newId(), type: 'ASSIGN_GROUP', value: '' }],
+  addMessage: false,
+  message: '',
+  abort: false,
   stop: false,
   order: 100,
   updatedAt: '',
@@ -132,7 +142,7 @@ export function loadRules(): BusinessRule[] {
     const raw = localStorage.getItem(RULES_KEY);
     if (raw) {
       const parsed = JSON.parse(raw) as BusinessRule[];
-      if (Array.isArray(parsed)) return parsed.map((r) => ({ ...r, when: r.when ?? 'before', events: r.events ?? { insert: true, update: false, delete: false, query: false }, order: typeof r.order === 'number' ? r.order : 100, updatedAt: r.updatedAt ?? '' }));
+      if (Array.isArray(parsed)) return parsed.map((r) => ({ ...r, addMessage: r.addMessage ?? false, message: r.message ?? '', abort: r.abort ?? false, when: r.when ?? 'before', events: r.events ?? { insert: true, update: false, delete: false, query: false }, order: typeof r.order === 'number' ? r.order : 100, updatedAt: r.updatedAt ?? '' }));
     }
   } catch {
     /* unreadable or storage blocked: no rules */
@@ -186,14 +196,23 @@ export interface RuleOutcome {
   /** CRITICAL | HIGH | MEDIUM | LOW */
   priority?: string;
   emailGroups: { id: number; name: string }[];
+  /** Messages from the matched rules that have "Add message" ticked. */
+  messages: string[];
+  /** The name of the rule that stops the incident being created, if one matched. */
+  abortedBy?: string;
 }
 
 /** Runs the enabled rules top to bottom; a later rule overrides an earlier one for the same field. */
 export function evaluateRules(rules: BusinessRule[], facts: Facts): RuleOutcome {
-  const out: RuleOutcome = { matched: [], emailGroups: [] };
+  const out: RuleOutcome = { matched: [], emailGroups: [], messages: [] };
   for (const rule of [...rules].sort((a, b) => a.order - b.order)) {
     if (!rule.enabled || !rule.events.insert || !ruleMatches(rule, facts)) continue;
     out.matched.push(rule);
+    if (rule.addMessage && rule.message.trim()) out.messages.push(rule.message.trim());
+    if (rule.abort) {
+      out.abortedBy = rule.name;
+      break;
+    }
     for (const a of rule.actions) {
       if (!a.value) continue;
       if (a.type === 'ASSIGN_GROUP') {
@@ -229,9 +248,10 @@ export function ruleProblem(rule: BusinessRule): string | null {
     const op = OPERATORS.find((o) => o.key === c.op);
     if (op?.needsValue && !c.value.trim()) return `Fill in the value for “${FACT_LABEL[c.field]}”.`;
   }
-  if (rule.actions.length === 0) return 'Add at least one action.';
+  if (rule.actions.length === 0 && !rule.abort) return 'Add at least one action.';
   for (const a of rule.actions) {
     if (!a.value) return `Choose a value for “${ACTION_LABEL[a.type]}”.`;
   }
+  if (rule.addMessage && !rule.message.trim()) return 'Type the message to show, or untick Add message.';
   return null;
 }

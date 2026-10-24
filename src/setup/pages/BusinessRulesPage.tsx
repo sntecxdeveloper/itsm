@@ -5,7 +5,6 @@ import { getCategoryMap } from '../../utils/categoryStore';
 import { loadFormSettings } from '../../incident/utils/incidentFormStore';
 import { LEVELS, derivedPriority } from '../../incident/pages/IncidentFormPage';
 import {
-  ACTION_LABEL,
   EVENT_LABEL,
   WHEN_OPTIONS,
   type RuleEvent,
@@ -28,6 +27,13 @@ import {
 } from '../../utils/businessRules';
 
 const PAGE_SIZE = 20;
+/** The "Set field values" choices: each is one action. */
+const FIELD_LABEL: Record<ActionType, string> = {
+  ASSIGN_GROUP: 'Assignment group',
+  ASSIGN_TO: 'Assigned to',
+  SET_PRIORITY: 'Priority',
+  EMAIL_GROUP: 'Email group members',
+};
 const EMPTY = '(empty)';
 const TABLE = 'Incident [incident]';
 const APPLICATION = 'Global';
@@ -232,7 +238,9 @@ export default function BusinessRulesPage() {
             ? PRIORITIES.map((p) => p.label)
             : fact === 'channel'
               ? loadFormSettings().channels
-              : fact === 'subcategory'
+              : fact === 'assignmentGroup'
+                ? groups.map((g) => g.name)
+                : fact === 'subcategory'
                 ? (categories[pickedCategory] ?? Array.from(new Set(Object.values(categories).flat())))
                 : null;
     if (!options) return <input value={value} onChange={(e) => onChange(e.target.value)} className={field} placeholder="Text to look for" />;
@@ -443,64 +451,126 @@ export default function BusinessRulesPage() {
           )}
 
           {tab === 'actions' && (
-          <section className="space-y-2 rounded border border-slate-200 p-3">
-            <p className="text-sm font-semibold text-slate-700">Actions</p>
-            {editing.actions.map((a) => {
-              const upd = (p: Partial<typeof a>) => patch({ actions: editing.actions.map((x) => (x.id === a.id ? { ...x, ...p } : x)) });
-              const isGroup = a.type === 'ASSIGN_GROUP' || a.type === 'EMAIL_GROUP';
-              return (
-                <div key={a.id} className="grid gap-2 sm:grid-cols-[1fr_1.4fr_auto]">
-                  <select value={a.type} onChange={(e) => upd({ type: e.target.value as ActionType, value: '', label: undefined })} className={field}>
-                    {(Object.keys(ACTION_LABEL) as ActionType[]).map((t) => (
-                      <option key={t} value={t}>
-                        {ACTION_LABEL[t]}
-                      </option>
-                    ))}
-                  </select>
-                  {isGroup ? (
+            <section className="space-y-4 rounded-b border border-slate-200 bg-white p-4 shadow-sm">
+              <div className="rounded border border-sky-300 bg-sky-100 px-3 py-3 text-sm text-slate-800">
+                Specify field values using the <strong>Set field values</strong> choice lists:
+                <ul className="mt-1 list-disc space-y-0.5 pl-6">
+                  <li>
+                    <strong>Field:</strong> what the rule changes on the new incident (assignment group, assigned to, priority) or who it emails.
+                  </li>
+                  <li>
+                    <strong>To:</strong> the value, chosen from the options available for that field.
+                  </li>
+                </ul>
+              </div>
+
+              <div className="grid grid-cols-[110px_1fr] gap-x-3 gap-y-2">
+                <span className={`${labelCls} pt-2`}>Set field values</span>
+                <div className="space-y-2">
+                  {editing.actions.map((a) => {
+                    const upd = (p: Partial<typeof a>) => patch({ actions: editing.actions.map((x) => (x.id === a.id ? { ...x, ...p } : x)) });
+                    const isGroup = a.type === 'ASSIGN_GROUP' || a.type === 'EMAIL_GROUP';
+                    return (
+                      <div key={a.id} className="grid items-center gap-2 sm:grid-cols-[minmax(0,1fr)_7rem_minmax(0,1.4fr)_auto]">
+                        <select value={a.type} onChange={(e) => upd({ type: e.target.value as ActionType, value: '', label: undefined })} className={field} aria-label="Field">
+                          {(Object.keys(FIELD_LABEL) as ActionType[]).map((t) => (
+                            <option key={t} value={t}>
+                              {FIELD_LABEL[t]}
+                            </option>
+                          ))}
+                        </select>
+                        <select disabled className={field} aria-label="Operator">
+                          <option>To</option>
+                        </select>
+                        {isGroup ? (
+                          <select
+                            value={a.value}
+                            onChange={(e) => upd({ value: e.target.value, label: groups.find((g) => String(g.id) === e.target.value)?.name })}
+                            className={field}
+                            aria-label="Value"
+                          >
+                            <option value="">{groups.length ? '-- Choose a group --' : 'No technician groups yet'}</option>
+                            {a.value && !groups.some((g) => String(g.id) === a.value) && <option value={a.value}>{a.label ?? `Group ${a.value}`}</option>}
+                            {groups.map((g) => (
+                              <option key={g.id} value={String(g.id)}>
+                                {g.name}
+                              </option>
+                            ))}
+                          </select>
+                        ) : a.type === 'SET_PRIORITY' ? (
+                          <select value={a.value} onChange={(e) => upd({ value: e.target.value })} className={field} aria-label="Value">
+                            <option value="">-- Choose a priority --</option>
+                            {PRIORITIES.map((p) => (
+                              <option key={p.value} value={p.value}>
+                                {p.label}
+                              </option>
+                            ))}
+                          </select>
+                        ) : (
+                          <input value={a.value} onChange={(e) => upd({ value: e.target.value })} className={field} placeholder="Technician username" aria-label="Value" />
+                        )}
+                        <button className={`${btn} text-red-600`} onClick={() => patch({ actions: editing.actions.filter((x) => x.id !== a.id) })} aria-label="Remove action">
+                          ✕
+                        </button>
+                      </div>
+                    );
+                  })}
+                  <div className="grid items-center gap-2 sm:grid-cols-[minmax(0,1fr)_7rem_minmax(0,1.4fr)_auto]">
                     <select
-                      value={a.value}
-                      onChange={(e) => upd({ value: e.target.value, label: groups.find((g) => String(g.id) === e.target.value)?.name })}
+                      value=""
+                      onChange={(e) => e.target.value && patch({ actions: [...editing.actions, { id: newId(), type: e.target.value as ActionType, value: '' }] })}
                       className={field}
+                      aria-label="Choose a field to set"
                     >
-                      <option value="">{groups.length ? '-- Choose a group --' : 'No technician groups yet'}</option>
-                      {a.value && !groups.some((g) => String(g.id) === a.value) && <option value={a.value}>{a.label ?? `Group ${a.value}`}</option>}
-                      {groups.map((g) => (
-                        <option key={g.id} value={String(g.id)}>
-                          {g.name}
+                      <option value="">-- choose field --</option>
+                      {(Object.keys(FIELD_LABEL) as ActionType[]).map((t) => (
+                        <option key={t} value={t}>
+                          {FIELD_LABEL[t]}
                         </option>
                       ))}
                     </select>
-                  ) : a.type === 'SET_PRIORITY' ? (
-                    <select value={a.value} onChange={(e) => upd({ value: e.target.value })} className={field}>
-                      <option value="">-- Choose a priority --</option>
-                      {PRIORITIES.map((p) => (
-                        <option key={p.value} value={p.value}>
-                          {p.label}
-                        </option>
-                      ))}
-                    </select>
-                  ) : (
-                    <input value={a.value} onChange={(e) => upd({ value: e.target.value })} className={field} placeholder="Technician username" />
-                  )}
-                  <button className={`${btn} text-red-600`} onClick={() => patch({ actions: editing.actions.filter((x) => x.id !== a.id) })} aria-label="Remove action">
-                    ✕
-                  </button>
+                    <input disabled placeholder="To" className={field} aria-hidden="true" />
+                    <input disabled placeholder="-- value --" className={field} aria-hidden="true" />
+                  </div>
+                  <p className="text-xs text-slate-500">
+                    Assignment actions only fill the group or technician when the person left them empty on the form. “Email group members” sends the “Ticket
+                    created” template to every enabled technician and user in that group.
+                  </p>
                 </div>
-              );
-            })}
-            <button className={btn} onClick={() => patch({ actions: [...editing.actions, { id: newId(), type: 'ASSIGN_GROUP', value: '' }] })}>
-              + Add action
-            </button>
-            <p className="text-xs text-slate-500">
-              Assignment actions only fill the group or technician when the person left them empty on the form. “Email the members of a group” sends the “Ticket
-              created” template to every enabled technician and user in that group.
-            </p>
-            <label className="mt-1 flex items-center gap-2 text-sm text-slate-700">
-              <input type="checkbox" checked={editing.stop} onChange={(e) => patch({ stop: e.target.checked })} className="h-4 w-4" />
-              Stop — do not run the rules below this one when it matches
-            </label>
-          </section>
+
+                <label htmlFor="br-msg" className={`${labelCls} pt-1`}>
+                  Add message
+                </label>
+                <div className="space-y-2">
+                  <input id="br-msg" type="checkbox" checked={editing.addMessage} onChange={(e) => patch({ addMessage: e.target.checked })} className="h-4 w-4" />
+                  {editing.addMessage && (
+                    <input
+                      value={editing.message}
+                      onChange={(e) => patch({ message: e.target.value })}
+                      className={`${field} max-w-xl`}
+                      placeholder="Shown on the incident after it is created"
+                      aria-label="Message"
+                    />
+                  )}
+                </div>
+
+                <label htmlFor="br-abort" className={`${labelCls} pt-1`}>
+                  Abort action
+                </label>
+                <div>
+                  <input id="br-abort" type="checkbox" checked={editing.abort} onChange={(e) => patch({ abort: e.target.checked })} className="h-4 w-4" />
+                  {editing.abort && <span className="ml-3 text-xs text-slate-500">The incident is not created when this rule matches.</span>}
+                </div>
+
+                <label htmlFor="br-stop" className={`${labelCls} pt-1`}>
+                  Stop
+                </label>
+                <div>
+                  <input id="br-stop" type="checkbox" checked={editing.stop} onChange={(e) => patch({ stop: e.target.checked })} className="h-4 w-4" />
+                  <span className="ml-3 text-xs text-slate-500">Do not run the rules below this one when it matches.</span>
+                </div>
+              </div>
+            </section>
           )}
 
           <div>{submitBtn}</div>
