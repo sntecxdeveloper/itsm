@@ -49,6 +49,8 @@ export async function createTicket(payload: {
   ticketCode?: string;
   /** Values of the custom fields (checked by the server). */
   customValues?: Record<string, unknown>;
+  /** What only the form knows (subcategory, impact, urgency, priority label, channel, group), for the server's business rules to look at. */
+  facts?: Record<string, string>;
 }): Promise<ItsmTicket> {
   const response = await api.post<ApiResponse<ItsmTicket>>('/itsm/tickets', payload);
   return fixTimes(response.data.data);

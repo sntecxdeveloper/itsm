@@ -62,6 +62,16 @@ public class MailEventNotificationService {
         });
     }
 
+    /** Mails the people a business rule named ("Email the members of a group") about the ticket it just matched. */
+    public void ticketRuleMail(ItsmTicket ticket, String ruleNames, List<String> recipients) {
+        if (recipients.isEmpty()) return;
+        String label = "Ticket created";
+        String note = "<p><strong>Sent by business rule:</strong> " + escapeHtml(ruleNames) + "</p>";
+        String error = email.sendShared(new MailRecipients(recipients, List.of(), List.of()),
+                "DEX " + label + ": " + ticket.getTicketCode(), ticketHtml(label, ticket, note));
+        if (error != null) logger.error("Could not send the business rule email for ticket {}: {}", ticket.getTicketCode(), error);
+    }
+
     public void ticketUpdated(ItsmTicket ticket) {
         sendEvent("updated", "Ticket updated", ticket);
     }

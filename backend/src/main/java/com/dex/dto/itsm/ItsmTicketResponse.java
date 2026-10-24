@@ -36,6 +36,15 @@ public class ItsmTicketResponse {
     public java.util.Map<String, Object> getCustomValues() { return customValues; }
     public void setCustomValues(java.util.Map<String, Object> customValues) { this.customValues = customValues; }
 
+    /** Set only on the response to creating a ticket: messages from business rules with "Add message", and the rules that matched. */
+    private java.util.List<String> ruleMessages;
+    private java.util.List<String> appliedRules;
+
+    public java.util.List<String> getRuleMessages() { return ruleMessages; }
+    public void setRuleMessages(java.util.List<String> ruleMessages) { this.ruleMessages = ruleMessages; }
+    public java.util.List<String> getAppliedRules() { return appliedRules; }
+    public void setAppliedRules(java.util.List<String> appliedRules) { this.appliedRules = appliedRules; }
+
     public ItsmTicketResponse() {}
 
     public ItsmTicketResponse(Long id, String ticketCode, String title, String description,

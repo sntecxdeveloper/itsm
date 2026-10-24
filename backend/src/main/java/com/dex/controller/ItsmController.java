@@ -101,6 +101,18 @@ public class ItsmController {
         return ResponseEntity.ok(ApiResponse.success("Ticket status updated", ticket));
     }
 
+    /** What only the form knows (subcategory, impact, urgency, channel, group), for the business rules to look at. */
+    private static Map<String, String> formFacts(Object facts) {
+        Map<String, String> out = new java.util.HashMap<>();
+        if (facts instanceof Map<?, ?> map) {
+            for (String key : List.of("subcategory", "impact", "urgency", "priority", "channel", "assignmentGroup")) {
+                Object value = map.get(key);
+                if (value != null) out.put(key, value.toString());
+            }
+        }
+        return out;
+    }
+
     @Operation(summary = "Create ticket", description = "Escalate into a new ITSM ticket. " +
             "Pass an issueId to auto-attach issue context, or supply title/description directly.")
     @PostMapping("/tickets")
@@ -114,7 +126,11 @@ public class ItsmController {
                 body.get("priority") != null ? body.get("priority").toString() : null,
                 body.get("category") != null ? body.get("category").toString() : null,
                 body.get("assignedTo") != null ? body.get("assignedTo").toString() : null,
-                body.get("requester") != null ? body.get("requester").toString() : null);
+                body.get("requester") != null ? body.get("requester").toString() : null,
+                formFacts(body.get("facts")));
+        // The later steps re-read the ticket; what the business rules had to say is only known from this first response.
+        List<String> ruleMessages = ticket.getRuleMessages();
+        List<String> appliedRules = ticket.getAppliedRules();
         if (body.get("assignmentGroupId") != null) {
             ticket = applyGroup(ticket.getId(), Long.valueOf(body.get("assignmentGroupId").toString()));
         }
@@ -123,6 +139,8 @@ public class ItsmController {
             customFields.saveForTicket(ticket.getId(), typed, roleOf(), SecurityContextHolder.getContext().getAuthentication().getName());
             ticket = itsmService.getTicketById(ticket.getId());
         }
+        ticket.setRuleMessages(ruleMessages);
+        ticket.setAppliedRules(appliedRules);
         return ResponseEntity.ok(ApiResponse.success("Ticket created", ticket));
     }
 

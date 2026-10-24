@@ -1,7 +1,7 @@
 /**
- * Business rules: "when an incident is created, if these conditions match, do these actions". The backend has no
- * rules table yet, so the rules live in this browser (like notification rules and categories) and are applied by the
- * New Incident page.
+ * Business rules: "when an incident is created, if these conditions match, do these actions". They are saved with the
+ * other Setup settings (see setupSync.ts) and the server runs them whenever an incident is raised: from the New Incident
+ * page, an email or the API (RuleEngine.java mirrors the evaluator below). The Setup page uses it to preview a rule.
  */
 
 export const RULES_KEY = 'dex.businessRules.v1';

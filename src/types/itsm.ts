@@ -17,6 +17,9 @@ export interface ItsmTicket {
   issueCode?: string;
   createdAt: string;
   updatedAt?: string;
+  /** Only on the response to creating a ticket: messages from business rules with "Add message", and the rules that matched. */
+  ruleMessages?: string[];
+  appliedRules?: string[];
 }
 
 export type TicketStatus = 'OPEN' | 'IN_PROGRESS' | 'RESOLVED' | 'CLOSED';

@@ -9,13 +9,12 @@ import { getIssues } from '../../utils/issueStore';
 import { loadCategoryGroups, subcategoryKey } from '../../utils/categoryGroupStore';
 import { formatSize, readAttachments, saveAttachments, type Attachment } from '../utils/incidentAttachments';
 import { fetchTickets } from '../../features/itsm/itsmSlice';
-import { createTicket, updateTicketStatus } from '../../api/itsmApi';
+import { createTicket } from '../../api/itsmApi';
 import { getFormFields, isFilled, type CustomFieldDef } from '../../api/customFieldApi';
 import CustomFieldsForm from '../../components/customfields/CustomFieldsForm';
 import { useAssignmentGroups } from '../../hooks/useAssignmentGroups';
 import { emailTicketsWithTemplate, groupMemberEmails } from '../utils/ticketNotifications';
 import { evaluateRules, loadRules, NO_FACTS } from '../../utils/businessRules';
-import { htmlToText } from '../../utils/emailHtml';
 import {
   LEVELS,
   NO_FIELDS,
@@ -34,9 +33,6 @@ const PRIORITY_BY_LABEL: Record<string, string> = {
   '3 - Moderate': 'MEDIUM',
   '4 - Low': 'LOW',
 };
-
-/** Where Save keeps the form until it is submitted. */
-const DRAFT_KEY = 'dex.newIncidentDraft.v1';
 
 const actionBtn =
   'rounded border border-slate-300 bg-white px-3 py-1.5 text-[13px] font-medium text-slate-800 hover:bg-slate-50 disabled:text-slate-300 disabled:hover:bg-white';
@@ -147,70 +143,17 @@ export default function NewIncidentPage() {
   };
   const extra = extraRecipients.split(/[,;\s]+/).filter(Boolean);
 
-  // Save keeps the form as a draft in this browser; Submit is only available once it has been saved.
-  const [saved, setSaved] = useState(false);
   const [menu, setMenu] = useState<{ x: number; y: number } | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
-
-  const saveDraft = () => {
-    const problem = validate();
-    if (problem) {
-      setNotice(null);
-      return setError(problem);
-    }
-    try {
-      localStorage.setItem(DRAFT_KEY, JSON.stringify({ fields, shortDescription, description, sendMail, extraRecipients, customValues }));
-    } catch {
-      setNotice(null);
-      return setError('The browser would not save the draft (storage is full or blocked).');
-    }
-    setError(null);
-    setSaved(true);
-    setNotice('Record saved.');
-  };
-
-  const loadDraft = (): boolean => {
-    try {
-      const raw = localStorage.getItem(DRAFT_KEY);
-      if (!raw) return false;
-      const d = JSON.parse(raw);
-      setFields({ ...NO_FIELDS, ...d.fields });
-      setShortDescription(d.shortDescription ?? '');
-      setDescription(d.description ?? '');
-      setSendMail(d.sendMail ?? true);
-      setExtraRecipients(d.extraRecipients ?? '');
-      setCustomValues(d.customValues ?? {});
-      return true;
-    } catch {
-      return false;
-    }
-  };
 
   const reloadForm = () => {
     setError(null);
-    if (loadDraft()) {
-      setSaved(true);
-      setNotice('Reloaded your saved draft.');
-    } else {
-      setFields(NO_FIELDS);
-      setShortDescription('');
-      setDescription('');
-      setSendMail(true);
-      setExtraRecipients('');
-      setCustomValues({});
-      setSaved(false);
-      setNotice(null);
-    }
+    setFields(NO_FIELDS);
+    setShortDescription('');
+    setDescription('');
+    setSendMail(true);
+    setExtraRecipients('');
+    setCustomValues({});
   };
-
-  // A draft saved earlier comes back when the page opens.
-  useEffect(() => {
-    if (loadDraft()) {
-      setSaved(true);
-      setNotice('Reloaded your saved draft.');
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   // The right-click menu closes on any click, scroll or Escape.
   useEffect(() => {
@@ -229,7 +172,7 @@ export default function NewIncidentPage() {
 
   const runMenu = (cmd: 'save' | 'url' | 'reload') => {
     setMenu(null);
-    if (cmd === 'save') saveDraft();
+    if (cmd === 'save') void submit();
     else if (cmd === 'url') navigator.clipboard?.writeText(window.location.href).catch(() => setError('The browser would not copy to the clipboard.'));
     else reloadForm();
   };
@@ -240,31 +183,31 @@ export default function NewIncidentPage() {
     setBusy(true);
     setError(null);
     try {
-      // Business rules (Setup → Automation) fill in the assignment, priority and mailing the person left to the system.
-      const outcome = evaluateRules(loadRules(), { ...fields, priority: priority ?? '', shortDescription, description });
-      if (outcome.abortedBy) {
-        setError(`The incident was not created: business rule “${outcome.abortedBy}” stops it.${outcome.messages.length ? ` ${outcome.messages.map(htmlToText).join(' ')}` : ''}`);
-        setBusy(false);
-        return;
-      }
-      const ruleGroup = outcome.assignmentGroupId != null ? assignmentGroups.find((g) => g.id === outcome.assignmentGroupId) : undefined;
-      const formGroup = assignmentGroups.find((g) => g.name === fields.assignmentGroup);
-      const chosen = formGroup ?? ruleGroup;
-      const saved: Fields = { ...fields, assignmentGroup: chosen?.name ?? fields.assignmentGroup, assignedTo: fields.assignedTo || outcome.assignedTo || '' };
-      // The backend only stores title, description, priority, category and assignee;
-      // the remaining fields are kept in this browser, as on the incident details page.
+      const chosen = assignmentGroups.find((g) => g.name === fields.assignmentGroup);
+      // The server runs the business rules (Setup → Business Rules): they can fill in the assignment, priority and state, mail
+      // groups, or refuse the incident. What only this form knows is sent along for the rules to look at.
       const ticket = await createTicket({
         title: shortDescription.trim(),
         description,
-        priority: outcome.priority ?? (priority ? PRIORITY_BY_LABEL[priority] : 'MEDIUM'),
+        priority: priority ? PRIORITY_BY_LABEL[priority] : 'MEDIUM',
         category: fields.category || undefined,
-        assignedTo: saved.assignedTo || undefined, requester: fields.requesterEmail.trim(),
+        assignedTo: fields.assignedTo || undefined,
+        requester: fields.requesterEmail.trim(),
         assignmentGroupId: chosen?.id,
         ticketCode: number,
         customValues: customDefs.length > 0 ? Object.fromEntries(customDefs.map((f) => [f.key, customValues[f.key] ?? null])) : undefined,
+        facts: {
+          subcategory: fields.subcategory,
+          impact: fields.impact,
+          urgency: fields.urgency,
+          priority: priority ?? '',
+          channel: fields.channel,
+          assignmentGroup: fields.assignmentGroup,
+        },
       });
-      // A rule that sets the incident state: tickets start as New, so only another state needs a second call.
-      if (outcome.state && outcome.state !== 'OPEN') await updateTicketStatus(ticket.id, outcome.state);
+      // The backend only stores title, description, priority, category, group and assignee;
+      // the remaining fields are kept in this browser, as on the incident details page.
+      const saved: Fields = { ...fields, assignmentGroup: ticket.assignmentGroup ?? fields.assignmentGroup, assignedTo: ticket.assignedTo ?? fields.assignedTo };
       try {
         localStorage.setItem(fieldsKey(ticket.id), JSON.stringify(saved));
       } catch {
@@ -273,27 +216,20 @@ export default function NewIncidentPage() {
       // If the browser refuses the write (storage full), the incident is still created without them.
       saveAttachments(ticket.id, attachments);
       dispatch(fetchTickets());
-      try {
-        localStorage.removeItem(DRAFT_KEY);
-      } catch {
-        /* storage unavailable: nothing to clear */
-      }
       // Same send as "Notification template" on the Incidents list: the saved Mail ID (stored just above) plus any extras.
       // With an assignment group chosen, every enabled technician and user in that group is mailed too.
       const groupId = ticket.assignmentGroupId ?? chosen?.id;
       const groupEmails = !sendMail || groupId == null ? [] : ((await groupMemberEmails([groupId]))[groupId] ?? []);
-      // "Email the members of a group" rules: those groups are mailed even when the requester box above is unticked.
-      const ruleMail = await groupMemberEmails(outcome.emailGroups.map((g) => g.id));
-      const ruleEmails = outcome.emailGroups.flatMap((g) => ruleMail[g.id] ?? []);
       let mailNote: string | null = null;
-      if (sendMail) mailNote = await emailTicketsWithTemplate([{ id: ticket.id }], 'TICKET_CREATED', undefined, [...extra, ...groupEmails, ...ruleEmails]);
-      else if (ruleEmails.length) mailNote = await emailTicketsWithTemplate([{ id: ticket.id }], 'TICKET_CREATED', undefined, ruleEmails, { includeRequester: false });
-      if (outcome.matched.length) {
-        const applied = `Business rule${outcome.matched.length === 1 ? '' : 's'} applied: ${outcome.matched.map((r) => r.name).join(', ')}.`;
+      if (sendMail) mailNote = await emailTicketsWithTemplate([{ id: ticket.id }], 'TICKET_CREATED', undefined, [...extra, ...groupEmails]);
+      const matched = ticket.appliedRules ?? [];
+      if (matched.length) {
+        const applied = `Business rule${matched.length === 1 ? '' : 's'} applied: ${matched.join(', ')}.`;
         mailNote = mailNote ? `${applied} ${mailNote}` : applied;
       }
+      const ruleMessages = ticket.ruleMessages ?? [];
       navigate(`/tickets/incidents/${ticket.id}`, {
-        state: mailNote || outcome.messages.length ? { mailNote: mailNote ?? undefined, ruleMessages: outcome.messages } : undefined,
+        state: mailNote || ruleMessages.length ? { mailNote: mailNote ?? undefined, ruleMessages } : undefined,
       });
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to create the incident');
@@ -319,8 +255,7 @@ export default function NewIncidentPage() {
           </button>
           <button
             onClick={submit}
-            disabled={busy || !saved}
-            title={saved ? undefined : 'Save the record first: right-click and choose Save'}
+            disabled={busy}
             className="rounded bg-primary-600 px-4 py-1.5 text-[13px] font-medium text-white hover:bg-primary-700 disabled:opacity-60"
           >
             {busy ? 'Submitting…' : 'Submit'}
@@ -328,13 +263,6 @@ export default function NewIncidentPage() {
         </div>
       </div>
 
-      {!saved && (
-        <p className="bg-amber-50 px-4 py-2 text-[13px] text-amber-800">
-          Fill in the required fields, then <strong>right-click</strong> anywhere on this form and choose <strong>Save</strong>. The record has to be saved before it can
-          be submitted.
-        </p>
-      )}
-      {notice && !error && <p className="bg-emerald-50 px-4 py-2 text-[13px] text-emerald-800">{notice}</p>}
       {error && <p className="bg-red-50 px-4 py-2 text-[13px] text-red-600">{error}</p>}
 
       <div className="grid gap-x-10 gap-y-3 bg-white p-5 lg:grid-cols-2">

@@ -40,6 +40,19 @@ public class SetupSettingsService {
         return out;
     }
 
+    /** One saved setting, or empty when it was never saved or cannot be read back. */
+    public java.util.Optional<JsonNode> get(String key) {
+        checkKey(key);
+        return jdbc.query("SELECT value_json FROM setup_settings WHERE setting_key = ?", rs -> {
+            if (!rs.next()) return java.util.Optional.<JsonNode>empty();
+            try {
+                return java.util.Optional.of(mapper.readTree(rs.getString(1)));
+            } catch (JsonProcessingException e) {
+                return java.util.Optional.<JsonNode>empty();
+            }
+        }, key);
+    }
+
     @Transactional
     public void put(String key, JsonNode value, String user) {
         checkKey(key);

@@ -37,9 +37,29 @@ public class ItsmService {
         this.sla = sla;
     }
 
-    /** Business rules set priority and group on a ticket being raised; run before it is saved. */
-    private void applyWorkflow(ItsmTicket ticket) {
+    private com.dex.itsm.RuleApplier ruleApplier;
+
+    @Autowired
+    void setRuleApplier(com.dex.itsm.RuleApplier ruleApplier) {
+        this.ruleApplier = ruleApplier;
+    }
+
+    /**
+     * Business rules act on a ticket being raised, before it is saved: the simple matching rules first, then the rules
+     * built under Setup → Business Rules, which can also set the assignee and state or stop the ticket being created.
+     */
+    private com.dex.itsm.RuleEngine.Outcome applyWorkflow(ItsmTicket ticket, java.util.Map<String, String> formFacts) {
         if (businessRules != null) businessRules.apply(ticket);
+        return ruleApplier == null ? new com.dex.itsm.RuleEngine.Outcome() : ruleApplier.apply(ticket, formFacts);
+    }
+
+    /** After the ticket is saved: mails the groups the rules named, and hands the rules' messages back to the caller. */
+    private ItsmTicketResponse ruleResult(ItsmTicket saved, com.dex.itsm.RuleEngine.Outcome outcome) {
+        if (ruleApplier != null) ruleApplier.mailGroups(saved, outcome);
+        ItsmTicketResponse response = toTicketResponse(saved);
+        response.setRuleMessages(outcome.messages);
+        response.setAppliedRules(outcome.matched);
+        return response;
     }
 
     /** Starts the SLA clock from the ticket's own saved creation time, so the deadlines count from the exact moment it was raised. */
@@ -112,6 +132,15 @@ public class ItsmService {
     @CacheEvict(value = "itsm", allEntries = true)
     public ItsmTicketResponse createTicket(Long issueId, String title, String description,
                                            String priority, String category, String assignedTo, String requester) {
+        return createTicket(issueId, title, description, priority, category, assignedTo, requester, null);
+    }
+
+    /** As above, with what only the form knows (subcategory, impact, urgency, channel, group) for the business rules to look at. */
+    @Transactional
+    @CacheEvict(value = "itsm", allEntries = true)
+    public ItsmTicketResponse createTicket(Long issueId, String title, String description,
+                                           String priority, String category, String assignedTo, String requester,
+                                           java.util.Map<String, String> formFacts) {
         logger.info("Creating ITSM ticket for issue: {} (priority: {})", issueId, priority);
 
         ItsmTicket ticket = new ItsmTicket();
@@ -152,11 +181,11 @@ public class ItsmService {
         ticket.setAssignedTo(assignedTo);
         if (requester != null && !requester.isBlank()) ticket.setRequester(requester.trim());
 
-        applyWorkflow(ticket);
+        com.dex.itsm.RuleEngine.Outcome outcome = applyWorkflow(ticket, formFacts);
         ItsmTicket saved = startSla(itsmTicketRepository.save(ticket));
         logger.info("Created ITSM ticket {}: {}", saved.getTicketCode(), saved.getTitle());
         if (mailNotifications != null) mailNotifications.ticketCreated(saved);
-        return toTicketResponse(saved);
+        return ruleResult(saved, outcome);
     }
 
     @Transactional
@@ -213,10 +242,10 @@ public class ItsmService {
         ticket.setRequester(requester);
         ticket.setAgentId(agentId);
         ticket.setSource("AI_TASK");
-        applyWorkflow(ticket);
+        com.dex.itsm.RuleEngine.Outcome outcome = applyWorkflow(ticket, null);
         ItsmTicket saved = startSla(itsmTicketRepository.save(ticket));
         logger.info("Assistant raised ticket {}: {}", saved.getTicketCode(), saved.getTitle());
-        return toTicketResponse(saved);
+        return ruleResult(saved, outcome);
     }
 
     private static final java.util.concurrent.atomic.AtomicLong FALLBACK_NUMBER = new java.util.concurrent.atomic.AtomicLong(10000);
@@ -245,11 +274,11 @@ public class ItsmService {
         ticket.setRequester(requesterEmail != null && requesterEmail.length() > 100
                 ? requesterEmail.substring(0, 100) : requesterEmail);
         ticket.setSource("EMAIL");
-        applyWorkflow(ticket);
+        com.dex.itsm.RuleEngine.Outcome outcome = applyWorkflow(ticket, null);
         ItsmTicket saved = startSla(itsmTicketRepository.save(ticket));
         logger.info("Email raised ticket {}: {}", saved.getTicketCode(), saved.getTitle());
         if (mailNotifications != null) mailNotifications.ticketCreated(saved);
-        return toTicketResponse(saved);
+        return ruleResult(saved, outcome);
     }
 
     private static final java.util.regex.Pattern EMAIL_ADDRESS = java.util.regex.Pattern.compile("^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$");

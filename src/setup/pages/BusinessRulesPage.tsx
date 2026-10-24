@@ -42,7 +42,7 @@ const ACTION_FIELDS: ActionType[] = ['SET_STATE', 'SET_PRIORITY', 'ASSIGN_TO', '
 const EMPTY = '(empty)';
 const TABLE = 'Incident [incident]';
 const APPLICATION = 'Global';
-// The rules run on the New Incident page just before the incident is saved.
+// The server runs the rules just before an incident is saved; this page edits them and previews the result.
 
 const input =
   'rounded-sm border border-slate-300 bg-white px-2 py-1 text-xs text-slate-800 placeholder:text-slate-400 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500';
@@ -323,7 +323,7 @@ export default function BusinessRulesPage() {
           {problem && <p className="rounded border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{problem}</p>}
 
           <p className="rounded border border-sky-300 bg-sky-100 px-3 py-3 text-sm text-slate-800">
-            A business rule runs when an incident is created on the New Incident page. Use business rules to automatically change values in form fields (assign a
+            A business rule runs on the server when an incident is created (New Incident page, email or API). Use business rules to automatically change values in form fields (assign a
             group or technician, set the priority) or email a group when the specified conditions are met.
           </p>
 
@@ -691,7 +691,7 @@ export default function BusinessRulesPage() {
         <span className="font-medium text-primary-700">All</span>
         <span className="mx-2 text-slate-400">&gt;</span>
         <span className="text-primary-700">Table = incident</span>
-        <span className="ml-4 text-slate-400">Rules run lowest Order first, when an incident is created on the New Incident page.</span>
+        <span className="ml-4 text-slate-400">Rules run lowest Order first, when an incident is created.</span>
         {notice && <span className="ml-4 text-amber-600">{notice}</span>}
       </div>
 
