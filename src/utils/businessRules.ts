@@ -80,11 +80,24 @@ export interface RuleAction {
   label?: string;
 }
 
+export type RuleWhen = 'before' | 'after' | 'async' | 'display';
+
+export const WHEN_OPTIONS: RuleWhen[] = ['before', 'after', 'async', 'display'];
+
+/** What happens to the incident that makes a rule run. Only Insert (an incident being created) happens in the app today. */
+export type RuleEvent = 'insert' | 'update' | 'delete' | 'query';
+
+export const EVENT_LABEL: Record<RuleEvent, string> = { insert: 'Insert', update: 'Update', delete: 'Delete', query: 'Query' };
+
 export interface BusinessRule {
   id: string;
   name: string;
   description: string;
   enabled: boolean;
+  /** When the rule runs relative to the save. */
+  when: RuleWhen;
+  /** The events the rule runs on. */
+  events: Record<RuleEvent, boolean>;
   /** all = every condition must match; any = one is enough. */
   match: 'all' | 'any';
   conditions: Condition[];
@@ -104,6 +117,8 @@ export const blankRule = (): BusinessRule => ({
   name: '',
   description: '',
   enabled: true,
+  when: 'before',
+  events: { insert: true, update: false, delete: false, query: false },
   match: 'all',
   conditions: [{ id: newId(), field: 'category', op: 'is', value: '' }],
   actions: [{ id: newId(), type: 'ASSIGN_GROUP', value: '' }],
@@ -117,7 +132,7 @@ export function loadRules(): BusinessRule[] {
     const raw = localStorage.getItem(RULES_KEY);
     if (raw) {
       const parsed = JSON.parse(raw) as BusinessRule[];
-      if (Array.isArray(parsed)) return parsed.map((r) => ({ ...r, order: typeof r.order === 'number' ? r.order : 100, updatedAt: r.updatedAt ?? '' }));
+      if (Array.isArray(parsed)) return parsed.map((r) => ({ ...r, when: r.when ?? 'before', events: r.events ?? { insert: true, update: false, delete: false, query: false }, order: typeof r.order === 'number' ? r.order : 100, updatedAt: r.updatedAt ?? '' }));
     }
   } catch {
     /* unreadable or storage blocked: no rules */
@@ -177,7 +192,7 @@ export interface RuleOutcome {
 export function evaluateRules(rules: BusinessRule[], facts: Facts): RuleOutcome {
   const out: RuleOutcome = { matched: [], emailGroups: [] };
   for (const rule of [...rules].sort((a, b) => a.order - b.order)) {
-    if (!rule.enabled || !ruleMatches(rule, facts)) continue;
+    if (!rule.enabled || !rule.events.insert || !ruleMatches(rule, facts)) continue;
     out.matched.push(rule);
     for (const a of rule.actions) {
       if (!a.value) continue;
@@ -209,6 +224,7 @@ export function describeAction(a: RuleAction): string {
 /** A rule is only worth saving when it has a name, complete conditions and at least one complete action. */
 export function ruleProblem(rule: BusinessRule): string | null {
   if (!rule.name.trim()) return 'Give the rule a name.';
+  if (!Object.values(rule.events).some(Boolean)) return 'Tick at least one of Insert, Update, Delete or Query.';
   for (const c of rule.conditions) {
     const op = OPERATORS.find((o) => o.key === c.op);
     if (op?.needsValue && !c.value.trim()) return `Fill in the value for “${FACT_LABEL[c.field]}”.`;

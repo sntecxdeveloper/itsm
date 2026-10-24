@@ -6,6 +6,10 @@ import { loadFormSettings } from '../../incident/utils/incidentFormStore';
 import { LEVELS, derivedPriority } from '../../incident/pages/IncidentFormPage';
 import {
   ACTION_LABEL,
+  EVENT_LABEL,
+  WHEN_OPTIONS,
+  type RuleEvent,
+  type RuleWhen,
   FACT_KEYS,
   FACT_LABEL,
   NO_FACTS,
@@ -28,7 +32,6 @@ const EMPTY = '(empty)';
 const TABLE = 'Incident [incident]';
 const APPLICATION = 'Global';
 // The rules run on the New Incident page just before the incident is saved.
-const WHEN = 'before';
 
 const input =
   'rounded-sm border border-slate-300 bg-white px-2 py-1 text-xs text-slate-800 placeholder:text-slate-400 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500';
@@ -353,8 +356,12 @@ export default function BusinessRulesPage() {
                   <label htmlFor="br-when" className={labelCls}>
                     When
                   </label>
-                  <select id="br-when" value={WHEN} onChange={() => undefined} className={field}>
-                    <option value={WHEN}>{WHEN}</option>
+                  <select id="br-when" value={editing.when} onChange={(e) => patch({ when: e.target.value as RuleWhen })} className={field}>
+                    {WHEN_OPTIONS.map((w) => (
+                      <option key={w} value={w}>
+                        {w}
+                      </option>
+                    ))}
                   </select>
                   <label htmlFor="br-order" className={labelCls}>
                     Order
@@ -368,16 +375,21 @@ export default function BusinessRulesPage() {
                   />
                 </div>
                 <div className="space-y-3 lg:pl-24">
-                  <label className={checkRow}>
-                    <span className="w-16 text-right">Insert</span>
-                    <input type="checkbox" checked disabled className="h-4 w-4" aria-label="Insert" />
-                  </label>
-                  {['Update', 'Delete', 'Query'].map((n) => (
-                    <label key={n} className={`${checkRow} text-slate-400`} title={`${n} is not supported yet: rules run when an incident is created`}>
-                      <span className="w-16 text-right">{n}</span>
-                      <input type="checkbox" disabled className="h-4 w-4" aria-label={n} />
+                  {(Object.keys(EVENT_LABEL) as RuleEvent[]).map((ev) => (
+                    <label key={ev} className={checkRow}>
+                      <span className="w-16 text-right">{EVENT_LABEL[ev]}</span>
+                      <input
+                        type="checkbox"
+                        checked={editing.events[ev]}
+                        onChange={(e) => patch({ events: { ...editing.events, [ev]: e.target.checked } })}
+                        className="h-4 w-4"
+                        aria-label={EVENT_LABEL[ev]}
+                      />
                     </label>
                   ))}
+                  <p className="max-w-xs text-xs text-slate-500">
+                    Rules run today when an incident is created (Insert). Update, Delete and Query are saved with the rule but not run yet.
+                  </p>
                 </div>
               </div>
 
