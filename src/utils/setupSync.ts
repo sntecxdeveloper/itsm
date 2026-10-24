@@ -53,7 +53,8 @@ function masterFromBrowser(): Master {
 }
 
 /** Copies the server's master lists into the browser keys the stores read. */
-function masterToBrowser(master: Master) {
+/** Also used after an import, which has just saved these lists. */
+export function masterToBrowser(master: Master) {
   const issues: Record<string, string[]> = {};
   const groups: Record<string, string> = {};
   for (const c of master.categories) {

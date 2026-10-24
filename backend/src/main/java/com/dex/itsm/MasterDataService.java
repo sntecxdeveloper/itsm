@@ -8,14 +8,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
-import org.springframework.core.io.ClassPathResource;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.io.InputStream;
 import java.sql.PreparedStatement;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -29,7 +27,8 @@ import java.util.Set;
 /**
  * The ITSM master data: Category &gt; Subcategory &gt; Item lists, the assignment group that handles each category or subcategory, and
  * the impact x urgency priority table. They live in the database (V57__itsm_master_data.sql) so every browser, mail-to-ticket and the
- * API see the same lists. Groups travel by name (the Setup pages work with names) and are stored by id.
+ * API see the same lists. Groups travel by name (the Setup pages work with names) and are stored by id. Nothing is built in: the lists
+ * come from Setup → Categories (typed in or imported from Excel).
  */
 @Service
 public class MasterDataService {
@@ -124,21 +123,19 @@ public class MasterDataService {
         return found.isEmpty() ? null : found.get(0);
     }
 
-    /** Fills the master the first time the server starts: from the Setup settings saved so far, else from the built-in defaults. */
+    /**
+     * Fills the master the first time the server starts, from the Setup settings an administrator already saved (categories, issues,
+     * categoryGroups) so nothing they set up is lost. With none saved the lists stay empty until they are imported from Excel.
+     */
     @EventListener(ApplicationReadyEvent.class)
     public void seedIfEmpty() {
         try {
             Integer existing = jdbc.queryForObject("SELECT COUNT(*) FROM itsm_categories", Integer.class);
             if (existing != null && existing > 0) return;
-            Master defaults = loadDefaults();
-            Master seed = fromSettings(defaults);
-            if (seed.categories().isEmpty()) seed = defaults;
-            if (seed.categories().isEmpty()) {
-                logger.warn("ITSM master data: nothing to start from (no saved Setup lists and no built-in defaults)");
-                return;
-            }
-            replace(seed);
-            logger.info("ITSM master data filled with {} categories", seed.categories().size());
+            Master saved = fromSettings();
+            if (saved.categories().isEmpty()) return;
+            replace(saved);
+            logger.info("ITSM master data filled with {} categories from the saved Setup lists", saved.categories().size());
         } catch (RuntimeException e) {
             // The lists are an aid for the forms: the server still starts without them.
             logger.error("ITSM master data could not be filled: {}", e.getMessage(), e);
@@ -146,13 +143,11 @@ public class MasterDataService {
     }
 
     /** The categories an administrator already saved under Setup (categories, issues, categoryGroups), if any. */
-    private Master fromSettings(Master defaults) {
+    private Master fromSettings() {
         JsonNode categories = settings.get("categories").orElse(null);
         if (categories == null || !categories.isArray()) return new Master(List.of(), null);
         JsonNode issues = settings.get("issues").orElse(null);
         JsonNode groups = settings.get("categoryGroups").orElse(null);
-        Map<String, List<String>> defaultItems = new HashMap<>();
-        for (Cat c : defaults.categories()) for (Sub s : c.subcategories()) defaultItems.putIfAbsent(s.name(), s.items());
 
         List<Cat> out = new ArrayList<>();
         Set<String> seen = new LinkedHashSet<>();
@@ -166,7 +161,6 @@ public class MasterDataService {
                 if (sub.isEmpty() || !seenSubs.add(sub.toLowerCase(Locale.ROOT))) continue;
                 List<String> items = new ArrayList<>();
                 if (issues != null && issues.path(sub).isArray()) issues.path(sub).forEach(n -> items.add(n.asText("")));
-                else items.addAll(defaultItems.getOrDefault(sub, List.of()));
                 subs.add(new Sub(sub, groupName(groups, name + "::" + sub), distinct(items)));
             }
             out.add(new Cat(name, groupName(groups, name), subs));
@@ -178,26 +172,6 @@ public class MasterDataService {
         if (groups == null) return null;
         String name = groups.path(key).asText("").trim();
         return name.isEmpty() ? null : name;
-    }
-
-    private Master loadDefaults() {
-        try (InputStream in = new ClassPathResource("itsm/master-defaults.json").getInputStream()) {
-            JsonNode root = mapper.readTree(in);
-            List<Cat> cats = new ArrayList<>();
-            for (JsonNode c : root.path("categories")) {
-                List<Sub> subs = new ArrayList<>();
-                for (JsonNode s : c.path("subcategories")) {
-                    List<String> items = new ArrayList<>();
-                    s.path("items").forEach(n -> items.add(n.asText()));
-                    subs.add(new Sub(s.path("name").asText(), null, items));
-                }
-                cats.add(new Cat(c.path("name").asText(), null, subs));
-            }
-            return new Master(cats, null);
-        } catch (Exception e) {
-            logger.warn("ITSM master data: the built-in defaults could not be read: {}", e.getMessage());
-            return new Master(List.of(), null);
-        }
     }
 
     private static void validate(Master master) {

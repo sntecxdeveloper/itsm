@@ -8,7 +8,7 @@
     "build": "tsc -b && vite build",
     "lint": "oxlint",
     "preview": "vite preview",
-    "test": "node --test tests/listView.test.ts tests/businessRules.test.ts tests/sla.test.ts tests/xlsx.test.ts"
+    "test": "node --test tests/listView.test.ts tests/businessRules.test.ts tests/sla.test.ts tests/xlsx.test.ts tests/xlsxRead.test.ts tests/importReference.test.ts"
   },
   "dependencies": {
     "@reduxjs/toolkit": "^2.12.0",

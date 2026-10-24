@@ -1,16 +1,11 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import {
-  DEFAULT_CATEGORIES,
-  loadCategories,
-  resetCategories,
-  saveCategories,
-  type Category,
-} from '../../utils/categoryStore';
+import { loadCategories, saveCategories, type Category } from '../../utils/categoryStore';
 import { loadCategoryGroups, setCategoryGroup, subcategoryKey } from '../../utils/categoryGroupStore';
-import { getIssues, resetIssues, saveIssues } from '../../utils/issueStore';
+import { getIssues, saveIssues } from '../../utils/issueStore';
 import { useAssignmentGroups } from '../../hooks/useAssignmentGroups';
 import { exportReferenceWorkbook } from '../utils/exportReference';
+import ImportReferenceDialog from '../components/ImportReferenceDialog';
 
 const field =
   'rounded border border-slate-300 bg-white px-2.5 py-1.5 text-xs text-slate-800 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500';
@@ -102,10 +97,11 @@ export default function CategoriesPage() {
   const removeSub = (name: string) =>
     commit(list.map((x, i) => (i === index ? { ...x, subcategories: x.subcategories.filter((s) => s !== name) } : x)));
 
-  const reset = () => {
-    if (!window.confirm('Replace your list with the default categories and subcategories?')) return;
-    resetCategories();
-    setList(DEFAULT_CATEGORIES);
+  const [importing, setImporting] = useState(false);
+  const imported = () => {
+    // The import saved the lists to the database and copied them into this browser.
+    setList(loadCategories());
+    setGroupMap(loadCategoryGroups());
     setOpenName(null);
     setNotice(null);
   };
@@ -114,6 +110,7 @@ export default function CategoriesPage() {
 
   return (
     <div className="space-y-4">
+      {importing && <ImportReferenceDialog onClose={() => setImporting(false)} onImported={imported} />}
       {/* Breadcrumb */}
       <div className="flex flex-wrap items-center gap-2 text-xs">
         <Link to="/setup" className="text-primary-700 hover:underline">
@@ -152,8 +149,8 @@ export default function CategoriesPage() {
             <button onClick={exportExcel} disabled={exporting} className={`${btn} ml-auto`}>
               {exporting ? 'Preparing…' : 'Export to Excel'}
             </button>
-            <button onClick={reset} className={btn}>
-              Reset to defaults
+            <button onClick={() => setImporting(true)} className={btn}>
+              Import from Excel
             </button>
           </div>
 
@@ -329,15 +326,6 @@ export default function CategoriesPage() {
                         Add
                       </button>
                     </div>
-                    <button
-                      onClick={() => {
-                        resetIssues(s);
-                        setIssues(getIssues(s));
-                      }}
-                      className="text-[11px] text-primary-700 hover:underline"
-                    >
-                      Reset to defaults
-                    </button>
                   </div>
                 )}
               </li>
