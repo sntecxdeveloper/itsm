@@ -18,6 +18,7 @@ import { applicableSlas, dueAt, durationLabel, loadSlas } from '../../utils/sla'
 import { NO_FACTS } from '../../utils/businessRules';
 import { bodyToHtml, sanitizeHtml } from '../../utils/emailHtml';
 import { allowedStates, loadTransitions } from '../../utils/lifecycle';
+import { loadPriorityMatrix } from '../../utils/priorityMatrixStore';
 import type { ItsmTicket, TicketPriority, TicketStatus } from '../../types';
 
 const PRIORITY_LABEL: Record<TicketPriority, string> = {
@@ -153,11 +154,14 @@ export const CHANNELS = ['Self-service', 'Phone', 'Email', 'Chat', 'Walk-in'];
 export const LEVELS = ['1 - High', '2 - Medium', '3 - Low'];
 export const GROUPS = ['Service Desk', 'Network', 'Hardware', 'Software', 'Database'];
 
-// Impact x urgency decides the priority, as in ServiceNow.
+// Impact x urgency decides the priority, as in ServiceNow (the table is Setup data kept in the database).
 export function derivedPriority(impact: string, urgency: string): string | null {
   const i = parseInt(impact, 10);
   const u = parseInt(urgency, 10);
   if (!i || !u) return null;
+  // The table kept in the database wins; the rule below is the fallback.
+  const saved = loadPriorityMatrix().find((row) => row.impact === impact && row.urgency === urgency);
+  if (saved) return saved.priority;
   const sum = i + u;
   return sum <= 2 ? '1 - Critical' : sum === 3 ? '2 - High' : sum === 4 ? '3 - Moderate' : '4 - Low';
 }

@@ -36,8 +36,11 @@ public class RuleApplier {
     /** Looked up when a rule mails a group, so creating a ticket never depends on the groups feature starting first. */
     private final ObjectProvider<GroupService> groupService;
     private final MailEventNotificationService mail;
+    private final MasterDataService master;
 
-    public RuleApplier(RuleEngine engine, DexGroupRepository groups, ObjectProvider<GroupService> groupService, MailEventNotificationService mail) {
+    public RuleApplier(RuleEngine engine, DexGroupRepository groups, ObjectProvider<GroupService> groupService, MailEventNotificationService mail,
+                       MasterDataService master) {
+        this.master = master;
         this.engine = engine;
         this.groups = groups;
         this.groupService = groupService;
@@ -68,16 +71,23 @@ public class RuleApplier {
         if (outcome.priority != null) ticket.setPriority(outcome.priority);
         if (outcome.assignedTo != null && (ticket.getAssignedTo() == null || ticket.getAssignedTo().isBlank())) ticket.setAssignedTo(outcome.assignedTo);
         if (outcome.groupId != null) {
-            DexGroup group = groups.findById(outcome.groupId).filter(g -> "ACTIVE".equals(g.getStatus())).orElse(null);
-            if (group != null) {
-                ticket.setAssignmentGroupId(group.getId());
-                ticket.setAssignmentGroup(group.getName());
-            } else {
-                logger.warn("Business rule assigns group {} but it is missing or inactive; left unassigned", outcome.groupId);
-            }
+            if (!assignGroup(ticket, outcome.groupId)) logger.warn("Business rule assigns group {} but it is missing or inactive; left unassigned", outcome.groupId);
+        }
+        // No rule chose a group: the one the master data (Setup → Categories) sets for this category or subcategory.
+        if (ticket.getAssignmentGroupId() == null) {
+            Long byCategory = master.groupFor(ticket.getCategory(), facts.get("subcategory"));
+            if (byCategory != null) assignGroup(ticket, byCategory);
         }
         if (outcome.state != null) ticket.setStatus(ItsmTicketStatus.valueOf(outcome.state));
         return outcome;
+    }
+
+    private boolean assignGroup(ItsmTicket ticket, Long groupId) {
+        DexGroup group = groups.findById(groupId).filter(g -> "ACTIVE".equals(g.getStatus())).orElse(null);
+        if (group == null) return false;
+        ticket.setAssignmentGroupId(group.getId());
+        ticket.setAssignmentGroup(group.getName());
+        return true;
     }
 
     /** "Email the members of a group" actions: mails those groups about the ticket once it is saved. A failure never undoes the ticket. */
