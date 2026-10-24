@@ -221,6 +221,8 @@ export default function BusinessRulesPage() {
   const outcome = useMemo(() => evaluateRules(rules, sampleFacts), [rules, sample]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const valueInput = (fact: FactKey, value: string, onChange: (v: string) => void) => {
+    // Once a rule says "Category is X", Subcategory only offers the subcategories of X.
+    const pickedCategory = editing?.conditions.find((c) => c.field === 'category' && c.op === 'is' && c.value)?.value ?? '';
     const options: string[] | null =
       fact === 'category'
         ? Object.keys(categories)
@@ -231,7 +233,7 @@ export default function BusinessRulesPage() {
             : fact === 'channel'
               ? loadFormSettings().channels
               : fact === 'subcategory'
-                ? Array.from(new Set(Object.values(categories).flat()))
+                ? (categories[pickedCategory] ?? Array.from(new Set(Object.values(categories).flat())))
                 : null;
     if (!options) return <input value={value} onChange={(e) => onChange(e.target.value)} className={field} placeholder="Text to look for" />;
     const list = value && !options.includes(value) ? [value, ...options] : options;
