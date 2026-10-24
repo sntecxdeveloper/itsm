@@ -9,7 +9,7 @@ import { getIssues } from '../../utils/issueStore';
 import { loadCategoryGroups, subcategoryKey } from '../../utils/categoryGroupStore';
 import { formatSize, readAttachments, saveAttachments, type Attachment } from '../utils/incidentAttachments';
 import { fetchTickets } from '../../features/itsm/itsmSlice';
-import { createTicket } from '../../api/itsmApi';
+import { createTicket, updateTicketStatus } from '../../api/itsmApi';
 import { getFormFields, isFilled, type CustomFieldDef } from '../../api/customFieldApi';
 import CustomFieldsForm from '../../components/customfields/CustomFieldsForm';
 import { useAssignmentGroups } from '../../hooks/useAssignmentGroups';
@@ -165,6 +165,8 @@ export default function NewIncidentPage() {
         ticketCode: number,
         customValues: customDefs.length > 0 ? Object.fromEntries(customDefs.map((f) => [f.key, customValues[f.key] ?? null])) : undefined,
       });
+      // A rule that sets the incident state: tickets start as New, so only another state needs a second call.
+      if (outcome.state && outcome.state !== 'OPEN') await updateTicketStatus(ticket.id, outcome.state);
       try {
         localStorage.setItem(fieldsKey(ticket.id), JSON.stringify(saved));
       } catch {

@@ -6,6 +6,7 @@ import { loadFormSettings } from '../../incident/utils/incidentFormStore';
 import { LEVELS, derivedPriority } from '../../incident/pages/IncidentFormPage';
 import {
   EVENT_LABEL,
+  STATES,
   WHEN_OPTIONS,
   type RuleEvent,
   type RuleWhen,
@@ -32,8 +33,11 @@ const FIELD_LABEL: Record<ActionType, string> = {
   ASSIGN_GROUP: 'Assignment group',
   ASSIGN_TO: 'Assigned to',
   SET_PRIORITY: 'Priority',
+  SET_STATE: 'Incident state',
   EMAIL_GROUP: 'Email group members',
 };
+/** Assignment group is set on the When to run tab, so it is not offered here. */
+const ACTION_FIELDS: ActionType[] = ['SET_STATE', 'SET_PRIORITY', 'ASSIGN_TO', 'EMAIL_GROUP'];
 const EMPTY = '(empty)';
 const TABLE = 'Incident [incident]';
 const APPLICATION = 'Global';
@@ -383,6 +387,26 @@ export default function BusinessRulesPage() {
                     onChange={(e) => patch({ order: Number.isFinite(e.target.valueAsNumber) ? e.target.valueAsNumber : 100 })}
                     className={`${field} text-right`}
                   />
+                  <label htmlFor="br-group" className={labelCls}>
+                    Assignment group
+                  </label>
+                  <select
+                    id="br-group"
+                    value={editing.actions.find((a) => a.type === 'ASSIGN_GROUP')?.value ?? ''}
+                    onChange={(e) => {
+                      const g = groups.find((x) => String(x.id) === e.target.value);
+                      const rest = editing.actions.filter((a) => a.type !== 'ASSIGN_GROUP');
+                      patch({ actions: g ? [{ id: newId(), type: 'ASSIGN_GROUP', value: String(g.id), label: g.name }, ...rest] : rest });
+                    }}
+                    className={field}
+                  >
+                    <option value="">{groups.length ? '-- None --' : 'No technician groups yet'}</option>
+                    {groups.map((g) => (
+                      <option key={g.id} value={String(g.id)}>
+                        {g.name}
+                      </option>
+                    ))}
+                  </select>
                 </div>
                 <div className="space-y-3 lg:pl-24">
                   {(Object.keys(EVENT_LABEL) as RuleEvent[]).map((ev) => (
@@ -456,7 +480,7 @@ export default function BusinessRulesPage() {
                 Specify field values using the <strong>Set field values</strong> choice lists:
                 <ul className="mt-1 list-disc space-y-0.5 pl-6">
                   <li>
-                    <strong>Field:</strong> what the rule changes on the new incident (assignment group, assigned to, priority) or who it emails.
+                    <strong>Field:</strong> what the rule changes on the new incident (incident state, priority, assigned to) or who it emails. The assignment group is set on the When to run tab.
                   </li>
                   <li>
                     <strong>To:</strong> the value, chosen from the options available for that field.
@@ -467,13 +491,15 @@ export default function BusinessRulesPage() {
               <div className="grid grid-cols-[110px_1fr] gap-x-3 gap-y-2">
                 <span className={`${labelCls} pt-2`}>Set field values</span>
                 <div className="space-y-2">
-                  {editing.actions.map((a) => {
+                  {editing.actions
+                    .filter((a) => a.type !== 'ASSIGN_GROUP')
+                    .map((a) => {
                     const upd = (p: Partial<typeof a>) => patch({ actions: editing.actions.map((x) => (x.id === a.id ? { ...x, ...p } : x)) });
-                    const isGroup = a.type === 'ASSIGN_GROUP' || a.type === 'EMAIL_GROUP';
+                    const isGroup = a.type === 'EMAIL_GROUP';
                     return (
                       <div key={a.id} className="grid items-center gap-2 sm:grid-cols-[minmax(0,1fr)_7rem_minmax(0,1.4fr)_auto]">
                         <select value={a.type} onChange={(e) => upd({ type: e.target.value as ActionType, value: '', label: undefined })} className={field} aria-label="Field">
-                          {(Object.keys(FIELD_LABEL) as ActionType[]).map((t) => (
+                          {ACTION_FIELDS.map((t) => (
                             <option key={t} value={t}>
                               {FIELD_LABEL[t]}
                             </option>
@@ -494,6 +520,15 @@ export default function BusinessRulesPage() {
                             {groups.map((g) => (
                               <option key={g.id} value={String(g.id)}>
                                 {g.name}
+                              </option>
+                            ))}
+                          </select>
+                        ) : a.type === 'SET_STATE' ? (
+                          <select value={a.value} onChange={(e) => upd({ value: e.target.value })} className={field} aria-label="Value">
+                            <option value="">-- Choose a state --</option>
+                            {STATES.map((p) => (
+                              <option key={p.value} value={p.value}>
+                                {p.label}
                               </option>
                             ))}
                           </select>
@@ -523,7 +558,7 @@ export default function BusinessRulesPage() {
                       aria-label="Choose a field to set"
                     >
                       <option value="">-- choose field --</option>
-                      {(Object.keys(FIELD_LABEL) as ActionType[]).map((t) => (
+                      {ACTION_FIELDS.map((t) => (
                         <option key={t} value={t}>
                           {FIELD_LABEL[t]}
                         </option>

@@ -57,12 +57,13 @@ export interface Condition {
   value: string;
 }
 
-export type ActionType = 'ASSIGN_GROUP' | 'ASSIGN_TO' | 'SET_PRIORITY' | 'EMAIL_GROUP';
+export type ActionType = 'ASSIGN_GROUP' | 'ASSIGN_TO' | 'SET_PRIORITY' | 'SET_STATE' | 'EMAIL_GROUP';
 
 export const ACTION_LABEL: Record<ActionType, string> = {
   ASSIGN_GROUP: 'Assign to group',
   ASSIGN_TO: 'Assign to technician',
   SET_PRIORITY: 'Set priority',
+  SET_STATE: 'Set incident state',
   EMAIL_GROUP: 'Email the members of a group',
 };
 
@@ -71,6 +72,14 @@ export const PRIORITIES = [
   { value: 'HIGH', label: '2 - High' },
   { value: 'MEDIUM', label: '3 - Moderate' },
   { value: 'LOW', label: '4 - Low' },
+];
+
+/** The incident states a rule can set (the backend's ticket statuses). */
+export const STATES = [
+  { value: 'OPEN', label: 'New' },
+  { value: 'IN_PROGRESS', label: 'In Progress' },
+  { value: 'RESOLVED', label: 'Resolved' },
+  { value: 'CLOSED', label: 'Closed' },
 ];
 
 export interface RuleAction {
@@ -128,7 +137,7 @@ export const blankRule = (): BusinessRule => ({
   events: { insert: true, update: false, delete: false, query: false },
   match: 'all',
   conditions: [{ id: newId(), field: 'category', op: 'is', value: '' }],
-  actions: [{ id: newId(), type: 'ASSIGN_GROUP', value: '' }],
+  actions: [],
   addMessage: false,
   message: '',
   abort: false,
@@ -195,6 +204,8 @@ export interface RuleOutcome {
   assignedTo?: string;
   /** CRITICAL | HIGH | MEDIUM | LOW */
   priority?: string;
+  /** OPEN | IN_PROGRESS | RESOLVED | CLOSED */
+  state?: string;
   emailGroups: { id: number; name: string }[];
   /** Messages from the matched rules that have "Add message" ticked. */
   messages: string[];
@@ -220,6 +231,7 @@ export function evaluateRules(rules: BusinessRule[], facts: Facts): RuleOutcome 
         out.assignmentGroupName = a.label;
       } else if (a.type === 'ASSIGN_TO') out.assignedTo = a.value;
       else if (a.type === 'SET_PRIORITY') out.priority = a.value;
+      else if (a.type === 'SET_STATE') out.state = a.value;
       else if (a.type === 'EMAIL_GROUP' && !out.emailGroups.some((g) => g.id === Number(a.value))) {
         out.emailGroups.push({ id: Number(a.value), name: a.label ?? `group ${a.value}` });
       }
@@ -236,6 +248,7 @@ export function describeCondition(c: Condition): string {
 
 export function describeAction(a: RuleAction): string {
   if (a.type === 'SET_PRIORITY') return `Set priority to ${PRIORITIES.find((p) => p.value === a.value)?.label ?? '…'}`;
+  if (a.type === 'SET_STATE') return `Set state to ${STATES.find((p) => p.value === a.value)?.label ?? '…'}`;
   if (a.type === 'ASSIGN_TO') return `Assign to ${a.value || '…'}`;
   return `${ACTION_LABEL[a.type]} ${a.label || '…'}`;
 }
