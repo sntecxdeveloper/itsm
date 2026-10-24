@@ -69,6 +69,7 @@ export default function BusinessRulesPage() {
   const [page, setPage] = useState(0);
   const [checked, setChecked] = useState<Set<string>>(new Set());
   const [testing, setTesting] = useState(false);
+  const [menu, setMenu] = useState<{ x: number; y: number } | null>(null);
 
   const commit = (next: BusinessRule[]) => {
     setRules(next);
@@ -79,16 +80,79 @@ export default function BusinessRulesPage() {
     setEditing(JSON.parse(JSON.stringify(rule)) as BusinessRule);
     setIsNew(fresh);
     setProblem(null);
+    setNotice(null);
+  };
+
+  /** Writes the rule being edited. The first Save of a new rule adds it; the form stays open so it can carry on. */
+  const persist = (): boolean => {
+    if (!editing) return false;
+    const p = ruleProblem(editing);
+    if (p) {
+      setProblem(p);
+      return false;
+    }
+    const stamped = { ...editing, updatedAt: new Date().toISOString() };
+    const exists = rules.some((r) => r.id === stamped.id);
+    commit(exists ? rules.map((r) => (r.id === stamped.id ? stamped : r)) : [...rules, stamped]);
+    setEditing(stamped);
+    setIsNew(false);
+    setProblem(null);
+    setNotice('Record saved.');
+    return true;
   };
 
   const save = () => {
-    if (!editing) return;
-    const p = ruleProblem(editing);
-    if (p) return setProblem(p);
-    const stamped = { ...editing, updatedAt: new Date().toISOString() };
-    commit(isNew ? [...rules, stamped] : rules.map((r) => (r.id === stamped.id ? stamped : r)));
-    setEditing(null);
+    if (persist()) {
+      setEditing(null);
+      setNotice(null);
+    }
   };
+
+  const reloadForm = () => {
+    if (!editing) return;
+    const stored = rules.find((r) => r.id === editing.id);
+    setEditing(stored ? (JSON.parse(JSON.stringify(stored)) as BusinessRule) : blankRule());
+    setProblem(null);
+    setNotice(null);
+  };
+
+  const exportRule = () => {
+    if (!editing) return;
+    const url = URL.createObjectURL(new Blob([JSON.stringify(editing, null, 2)], { type: 'application/json' }));
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${(editing.name || 'business-rule').replace(/[^w-]+/g, '-')}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const copyText = (text: string) => {
+    navigator.clipboard?.writeText(text).catch(() => setNotice('The browser would not copy to the clipboard.'));
+  };
+
+  const runMenu = (cmd: 'save' | 'export' | 'url' | 'id' | 'reload') => {
+    setMenu(null);
+    if (cmd === 'save') persist();
+    else if (cmd === 'export') exportRule();
+    else if (cmd === 'url') copyText(window.location.href);
+    else if (cmd === 'id') editing && copyText(editing.id);
+    else reloadForm();
+  };
+
+  // the right-click menu closes on any click, scroll or Escape
+  useEffect(() => {
+    if (!menu) return;
+    const close = () => setMenu(null);
+    const esc = (e: KeyboardEvent) => e.key === 'Escape' && close();
+    window.addEventListener('click', close);
+    window.addEventListener('scroll', close, true);
+    window.addEventListener('keydown', esc);
+    return () => {
+      window.removeEventListener('click', close);
+      window.removeEventListener('scroll', close, true);
+      window.removeEventListener('keydown', esc);
+    };
+  }, [menu]);
 
   const patch = (p: Partial<BusinessRule>) => setEditing((e) => (e ? { ...e, ...p } : e));
 
@@ -181,23 +245,43 @@ export default function BusinessRulesPage() {
   /* ===================== record form ===================== */
   if (editing) {
     return (
-      <div className="-mx-1">
+      <div
+        className="-mx-1 min-h-[60vh]"
+        onContextMenu={(e) => {
+          e.preventDefault();
+          setMenu({ x: e.clientX, y: e.clientY });
+        }}
+      >
         <div className="flex flex-wrap items-center gap-3 border-b border-slate-200 bg-slate-100 px-3 py-2">
           <button onClick={() => setEditing(null)} className={btn} aria-label="Back to business rules">
             ← Back
           </button>
-          <h1 className="text-sm font-semibold text-slate-900">Business Rule{editing.name ? ` · ${editing.name}` : ''}</h1>
+          <h1 className="text-sm font-semibold text-slate-900">
+            Business Rule{editing.name ? ` · ${editing.name}` : ''}
+            {isNew && <span className="ml-2 font-normal text-slate-500">New record</span>}
+          </h1>
           <div className="ml-auto flex gap-2">
             <button onClick={() => setEditing(null)} className={btn}>
               Cancel
             </button>
-            <button onClick={save} className="rounded bg-primary-600 px-4 py-1 text-xs font-semibold text-white hover:bg-primary-700">
+            <button
+              onClick={save}
+              disabled={isNew}
+              title={isNew ? 'Save the record first: right-click and choose Save' : undefined}
+              className="rounded bg-primary-600 px-4 py-1 text-xs font-semibold text-white hover:bg-primary-700 disabled:opacity-50"
+            >
               {isNew ? 'Submit' : 'Update'}
             </button>
           </div>
         </div>
 
         <div className="space-y-5 p-4">
+          {isNew && (
+            <p className="rounded border border-sky-200 bg-sky-50 px-3 py-2 text-sm text-sky-800">
+              Fill in the Name, then <strong>right-click</strong> anywhere on this form and choose <strong>Save</strong>. The record has to be saved before it can be submitted.
+            </p>
+          )}
+          {notice === 'Record saved.' && <p className="rounded border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800">Record saved.</p>}
           {problem && <p className="rounded border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{problem}</p>}
 
           <div className="grid gap-x-10 gap-y-3 lg:grid-cols-2">
@@ -338,6 +422,31 @@ export default function BusinessRulesPage() {
             </label>
           </section>
         </div>
+
+        {menu && (
+          <ul
+            role="menu"
+            style={{ left: Math.min(menu.x, window.innerWidth - 200), top: Math.min(menu.y, window.innerHeight - 200) }}
+            className="fixed z-50 w-48 rounded border border-slate-200 bg-white py-1 text-sm shadow-lg"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {(
+              [
+                ['save', 'Save'],
+                ['export', 'Export (JSON)'],
+                ['url', 'Copy URL'],
+                ['id', 'Copy rule id'],
+                ['reload', 'Reload form'],
+              ] as const
+            ).map(([cmd, label], i) => (
+              <li key={cmd} role="none" className={i === 1 || i === 2 ? 'border-t border-slate-200' : ''}>
+                <button role="menuitem" onClick={() => runMenu(cmd)} className="block w-full px-4 py-1.5 text-left text-slate-800 hover:bg-primary-600 hover:text-white">
+                  {label}
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
     );
   }
