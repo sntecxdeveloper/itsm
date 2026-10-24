@@ -10,6 +10,7 @@ import {
 import { loadCategoryGroups, setCategoryGroup, subcategoryKey } from '../../utils/categoryGroupStore';
 import { getIssues, resetIssues, saveIssues } from '../../utils/issueStore';
 import { useAssignmentGroups } from '../../hooks/useAssignmentGroups';
+import { exportReferenceWorkbook } from '../utils/exportReference';
 
 const field =
   'rounded border border-slate-300 bg-white px-2.5 py-1.5 text-xs text-slate-800 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500';
@@ -28,6 +29,19 @@ export default function CategoriesPage() {
   const [newIssue, setNewIssue] = useState('');
   const [issues, setIssues] = useState<string[]>([]);
   const [groupMap, setGroupMap] = useState(loadCategoryGroups);
+
+  const [exporting, setExporting] = useState(false);
+  const exportExcel = async () => {
+    setExporting(true);
+    setNotice(null);
+    try {
+      await exportReferenceWorkbook();
+    } catch (e) {
+      setNotice(e instanceof Error ? `Could not export: ${e.message}` : 'Could not export the lists.');
+    } finally {
+      setExporting(false);
+    }
+  };
 
   const current = list.find((x) => x.name === openName);
   const index = current ? list.indexOf(current) : -1;
@@ -135,7 +149,10 @@ export default function CategoriesPage() {
             <span className="text-xs text-slate-500">
               {list.length} categories, {total} subcategories. Click a category to see its subcategories.
             </span>
-            <button onClick={reset} className={`${btn} ml-auto`}>
+            <button onClick={exportExcel} disabled={exporting} className={`${btn} ml-auto`}>
+              {exporting ? 'Preparing…' : 'Export to Excel'}
+            </button>
+            <button onClick={reset} className={btn}>
               Reset to defaults
             </button>
           </div>
