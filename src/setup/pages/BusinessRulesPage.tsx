@@ -50,45 +50,6 @@ const COLUMNS: { key: ColKey; label: string; get: (r: BusinessRule) => string }[
   { key: 'updated', label: 'Updated', get: (r) => stamp(r.updatedAt) },
 ];
 
-/** Starting points taken from the usual ITSM rules; the group is picked after choosing one. */
-const EXAMPLES: { title: string; make: () => BusinessRule }[] = [
-  {
-    title: 'Automatic group assignment (Category is Software)',
-    make: () => ({
-      ...blankRule(),
-      name: 'Software ticket assignment',
-      description: 'Software incidents go straight to the software support group.',
-      conditions: [{ id: newId(), field: 'category', op: 'is', value: 'Software' }],
-      actions: [{ id: newId(), type: 'ASSIGN_GROUP', value: '' }],
-    }),
-  },
-  {
-    title: 'High-priority incident (Impact High and Urgency High)',
-    make: () => ({
-      ...blankRule(),
-      name: 'High impact and urgency',
-      description: 'Make it critical and tell the support team.',
-      conditions: [
-        { id: newId(), field: 'impact', op: 'is', value: '1 - High' },
-        { id: newId(), field: 'urgency', op: 'is', value: '1 - High' },
-      ],
-      actions: [
-        { id: newId(), type: 'SET_PRIORITY', value: 'CRITICAL' },
-        { id: newId(), type: 'EMAIL_GROUP', value: '' },
-      ],
-    }),
-  },
-  {
-    title: 'Email the group (Channel is Email)',
-    make: () => ({
-      ...blankRule(),
-      name: 'Tell the team about emailed incidents',
-      conditions: [{ id: newId(), field: 'channel', op: 'is', value: 'Email' }],
-      actions: [{ id: newId(), type: 'EMAIL_GROUP', value: '' }],
-    }),
-  },
-];
-
 export default function BusinessRulesPage() {
   const groups = useAssignmentGroups();
   const categories = useMemo(getCategoryMap, []);
@@ -500,21 +461,7 @@ export default function BusinessRulesPage() {
             {visible.length === 0 && (
               <tr>
                 <td colSpan={COLUMNS.length + 1} className="px-3 py-10 text-center text-slate-400">
-                  {rules.length === 0 ? (
-                    <div className="space-y-2">
-                      <p>No records to display</p>
-                      <p className="text-xs">Start from an example:</p>
-                      <div className="flex flex-wrap justify-center gap-2">
-                        {EXAMPLES.map((ex) => (
-                          <button key={ex.title} onClick={() => open(ex.make(), true)} className={btn}>
-                            {ex.title}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  ) : (
-                    'No records to display'
-                  )}
+                  No records to display
                 </td>
               </tr>
             )}
